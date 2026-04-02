@@ -1030,6 +1030,18 @@ const getLibrarySelectorMetaLabel = (card) => {
   return "";
 };
 
+const normalizeDisplayText = (value) => {
+  if (typeof value !== "string" || !/[ÃÂâ]/.test(value)) return value;
+
+  try {
+    return new TextDecoder("utf-8").decode(
+      Uint8Array.from(value, (char) => char.charCodeAt(0))
+    );
+  } catch {
+    return value;
+  }
+};
+
 const getAvatarData = (avatarName) => {
   return (
     AVATAR_OPTIONS.find((a) => a.name === avatarName) || AVATAR_OPTIONS[0]
@@ -1990,14 +2002,235 @@ function LibraryScreen({ onGoHome }) {
 }
 
 function AvatarsScreen({ onGoHome }) {
+  const [avatarMode, setAvatarMode] = useState("primary");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [touchStartY, setTouchStartY] = useState(null);
+  const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  const avatarCollection =
+    avatarMode === "secondary" ? SECONDARY_AVATARS : AVATAR_OPTIONS;
+  const selectedAvatar = avatarCollection[selectedIndex] ?? avatarCollection[0];
+  const selectedAttacks = selectedAvatar.attacks ?? [];
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [avatarMode]);
+
+  const changeAvatar = (direction) => {
+    setSelectedIndex((prev) => {
+      const totalAvatars = avatarCollection.length;
+      return (prev + direction + totalAvatars) % totalAvatars;
+    });
+  };
+
+  const startRepeating = (direction) => {
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => changeAvatar(direction), 150);
+    }, 1000);
+  };
+
+  const stopRepeating = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const getWheelOffset = (index) => {
+    const totalAvatars = avatarCollection.length;
+    let offset = index - selectedIndex;
+
+    if (offset > totalAvatars / 2) offset -= totalAvatars;
+    if (offset < -totalAvatars / 2) offset += totalAvatars;
+
+    return offset;
+  };
+
+  const handleWheelTouchStart = (event) => {
+    setTouchStartY(event.touches[0].clientY);
+  };
+
+  const handleWheelTouchEnd = (event) => {
+    if (touchStartY === null) return;
+
+    const touchEndY = event.changedTouches[0].clientY;
+    const deltaY = touchStartY - touchEndY;
+
+    if (Math.abs(deltaY) > 40) {
+      changeAvatar(deltaY > 0 ? 1 : -1);
+    }
+
+    setTouchStartY(null);
+  };
+
+  const avatarTypeLabel = avatarMode === "secondary" ? "Secundario" : "Avatar";
+  const avatarSummary =
+    avatarMode === "secondary"
+      ? `${normalizeDisplayText(selectedAvatar.type)} · ${selectedAvatar.hp} PV · Debilidad: ${normalizeDisplayText(selectedAvatar.weakness)} · Invocación: ${normalizeDisplayText(selectedAvatar.summonCardName)}`
+      : `${normalizeDisplayText(selectedAvatar.type)} · ${selectedAvatar.hp} PV · Debilidad: ${normalizeDisplayText(selectedAvatar.weakness)}`;
+
   return (
-    <div className="avatars-screen">
+    <div className="avatars-screen library-tone-summon">
       <div className="library-topbar">
-        <button onClick={onGoHome}>Volver</button>
         <h1>Avatares</h1>
+        <div className="library-topbar-right">
+          <button
+            className="back-home-btn icon-home-btn"
+            onClick={onGoHome}
+            title="Volver al inicio"
+            aria-label="Volver al inicio"
+          >
+            <img src="/ui/home-icon.png" alt="Inicio" className="home-icon" />
+          </button>
+        </div>
       </div>
 
-      <div className="coming-soon-box">
+      <div className="library-layout avatars-layout">
+        <div className="library-showcase">
+          <div className="library-detail avatars-detail">
+            <div className="library-detail-frame avatars-detail-frame">
+              <img
+                src={selectedAvatar.image}
+                alt={normalizeDisplayText(selectedAvatar.name)}
+                className="library-detail-image avatars-detail-image"
+              />
+            </div>
+
+            <div className="library-detail-copy">
+              <div className="library-detail-heading">
+                <div className="library-detail-tags">
+                  <p className="library-category">{avatarTypeLabel}</p>
+                  <span className="library-rarity-pill">
+                    {normalizeDisplayText(selectedAvatar.type)}
+                  </span>
+                </div>
+                <h2>{normalizeDisplayText(selectedAvatar.name)}</h2>
+                <p className="library-summary avatars-summary">
+                  {normalizeDisplayText(selectedAvatar.type)} · {selectedAvatar.hp} PV ·
+                  Debilidad: {normalizeDisplayText(selectedAvatar.weakness)}
+                </p>
+              </div>
+
+              <div className="library-meta-grid">
+                <div className="library-meta-card library-meta-card-wide library-effect-card">
+                  <span className="library-meta-label">Ataques</span>
+                  <div className="avatar-attack-list">
+                    {selectedAttacks.map((attack) => (
+                      <div
+                        key={`${selectedAvatar.name}-${attack.name}`}
+                        className="avatar-attack-item"
+                      >
+                        <strong>{normalizeDisplayText(attack.name)}</strong>
+                        <p>
+                          -{attack.damage} PD
+                          {attack.description
+                            ? ` · ${normalizeDisplayText(attack.description)}`
+                            : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside className="library-wheel-panel avatars-wheel-panel">
+          <div className="avatars-mode-switch" role="tablist" aria-label="Tipo de avatar">
+            <button
+              type="button"
+              className={`avatars-mode-btn ${avatarMode === "primary" ? "active" : ""}`}
+              onClick={() => setAvatarMode("primary")}
+            >
+              Principal
+            </button>
+            <button
+              type="button"
+              className={`avatars-mode-btn ${avatarMode === "secondary" ? "active" : ""}`}
+              onClick={() => setAvatarMode("secondary")}
+            >
+              Secundario
+            </button>
+          </div>
+
+          <button
+            className="library-wheel-arrow"
+            onClick={() => changeAvatar(-1)}
+            onMouseDown={() => startRepeating(-1)}
+            onMouseUp={stopRepeating}
+            onMouseLeave={stopRepeating}
+            onTouchStart={() => startRepeating(-1)}
+            onTouchEnd={stopRepeating}
+            type="button"
+            aria-label="Avatar anterior"
+          >
+            ^
+          </button>
+
+          <div
+            className="library-wheel-shell"
+            onTouchStart={handleWheelTouchStart}
+            onTouchEnd={handleWheelTouchEnd}
+          >
+            <div className="library-wheel-focus" />
+
+            <div className="library-wheel">
+              {AVATAR_OPTIONS.map((avatar, index) => {
+                const offset = getWheelOffset(index);
+                const isActive = offset === 0;
+                const isVisible = Math.abs(offset) <= 1;
+
+                return (
+                  <button
+                    key={avatar.name}
+                    type="button"
+                    className={`library-wheel-item ${isActive ? "active" : ""}`}
+                    style={{
+                      transform: `translateY(${offset * 74}px) scale(${isActive ? 1 : 0.84})`,
+                      opacity: !isVisible ? 0 : isActive ? 1 : 0.58,
+                      pointerEvents: !isVisible ? "none" : "auto",
+                    }}
+                    onClick={() => setSelectedIndex(index)}
+                  >
+                    <span className="library-wheel-item-name">
+                      {normalizeDisplayText(avatar.name)}
+                    </span>
+                    <span className="library-wheel-item-meta">
+                      {normalizeDisplayText(avatar.type)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            className="library-wheel-arrow"
+            onClick={() => changeAvatar(1)}
+            onMouseDown={() => startRepeating(1)}
+            onMouseUp={stopRepeating}
+            onMouseLeave={stopRepeating}
+            onTouchStart={() => startRepeating(1)}
+            onTouchEnd={stopRepeating}
+            type="button"
+            aria-label="Avatar siguiente"
+          >
+            v
+          </button>
+        </aside>
         <h2>Próximamente</h2>
         <p>Aquí aparecerá la galería de avatares.</p>
       </div>
