@@ -2170,6 +2170,68 @@ const getAvatarTitle = (avatar, mode) => {
   return avatar.name === "Thalindra" ? "GUARDIANA DEL VIVARIUM" : typeLabel;
 };
 
+const PRIMARY_AVATAR_ACCENTS = {
+  Thalindra: { accent: "#49e048", darkStart: "#042408", darkEnd: "#0e5016" },
+  "Sarah Ardent": { accent: "#ff8a3d", darkStart: "#4a1707", darkEnd: "#8a3113" },
+  "Aethera Hex": { accent: "#5fd4ff", darkStart: "#08263d", darkEnd: "#114d79" },
+  "Citlali Teyah": { accent: "#f3c95e", darkStart: "#47330a", darkEnd: "#8a6216" },
+  "Hal'Lethrra": { accent: "#7fd7ff", darkStart: "#0a2236", darkEnd: "#184b71" },
+  "Nefereth Ra": { accent: "#f4c24c", darkStart: "#4a3206", darkEnd: "#8b5c12" },
+  Aurhiel: { accent: "#efe7c8", darkStart: "#3f3820", darkEnd: "#74663a" },
+  Elariss: { accent: "#c79a67", darkStart: "#3d2411", darkEnd: "#6f4422" },
+  Artemia: { accent: "#d46b44", darkStart: "#43190b", darkEnd: "#7b2f18" },
+  Zahriel: { accent: "#ff4747", darkStart: "#4f1010", darkEnd: "#8d1f1f" },
+  "Kohana Saionji": { accent: "#ff9b33", darkStart: "#4d2708", darkEnd: "#8b4710" },
+  Solaria: {
+    accent: "#ffd95a",
+    darkStart: "#4d3906",
+    darkEnd: "#967011",
+    subtitleGradient: "linear-gradient(90deg, #5bc9ff 0%, #ffd95a 100%)",
+  },
+  Noxaria: {
+    accent: "#ff4f5e",
+    darkStart: "#4b0f18",
+    darkEnd: "#8b1e2b",
+    subtitleGradient: "linear-gradient(90deg, #ff4040 0%, #ff9a2e 100%)",
+  },
+};
+
+const hexToRgb = (hex) => {
+  const normalized = hex.replace("#", "");
+  const value =
+    normalized.length === 3
+      ? normalized.split("").map((char) => char + char).join("")
+      : normalized;
+
+  const int = Number.parseInt(value, 16);
+  if (Number.isNaN(int)) return null;
+
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  };
+};
+
+const getPrimaryAvatarThemeStyle = (avatarName) => {
+  const palette = PRIMARY_AVATAR_ACCENTS[normalizeDisplayText(avatarName)];
+  if (!palette) return {};
+
+  const rgb = hexToRgb(palette.accent);
+  if (!rgb) return {};
+
+  return {
+    "--avatars-accent": palette.accent,
+    "--avatars-accent-soft": `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`,
+    "--avatars-accent-mid": `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.24)`,
+    "--avatars-accent-strong": `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.38)`,
+    "--avatars-accent-border": `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.9)`,
+    "--avatars-accent-dark-start": palette.darkStart,
+    "--avatars-accent-dark-end": palette.darkEnd,
+    "--avatars-accent-gradient": palette.subtitleGradient ?? "",
+  };
+};
+
 function AvatarsScreen({ onGoHome }) {
   const [avatarMode, setAvatarMode] = useState("primary");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -2204,6 +2266,13 @@ function AvatarsScreen({ onGoHome }) {
     avatarMode === "secondary"
       ? `Invocacion: ${normalizeDisplayText(selectedAvatar.summonCardName)}.`
       : getAvatarLoreSummary(selectedAvatar.name);
+  const avatarThemeStyle =
+    avatarMode === "primary"
+      ? getPrimaryAvatarThemeStyle(selectedAvatar.name)
+      : undefined;
+  const hasGradientAccent =
+    avatarMode === "primary" &&
+    Boolean(avatarThemeStyle?.["--avatars-accent-gradient"]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -2280,7 +2349,10 @@ function AvatarsScreen({ onGoHome }) {
   };
 
   return (
-    <div className={`avatars-screen avatars-prototype-screen ${avatarMode === "secondary" ? "avatars-secondary-theme" : "avatars-primary-theme"}`}>
+    <div
+      className={`avatars-screen avatars-prototype-screen ${avatarMode === "secondary" ? "avatars-secondary-theme" : "avatars-primary-theme"} ${hasGradientAccent ? "avatars-gradient-accent" : ""}`}
+      style={avatarThemeStyle}
+    >
       <div className="library-topbar avatars-topbar">
         <h1>Avatares</h1>
         <div className="library-topbar-right avatars-topbar-right">
@@ -2307,15 +2379,9 @@ function AvatarsScreen({ onGoHome }) {
           <div className="avatars-main-stack">
             <div className="avatars-stage-panel">
               <div
-                className="avatars-stage-bg-fill"
+                className="avatars-stage-photo"
                 style={{
-                  backgroundImage: `url(${selectedAvatar.image})`,
-                }}
-              />
-              <div
-                className="avatars-stage-bg"
-                style={{
-                  backgroundImage: `url(${selectedAvatar.image})`,
+                  "--avatars-stage-image": `url(${selectedAvatar.image})`,
                 }}
               />
             </div>

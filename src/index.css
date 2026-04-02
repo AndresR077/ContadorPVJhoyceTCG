@@ -1858,6 +1858,11 @@ body {
   position: relative;
   min-height: 10px;
   --avatars-panel-left-overhang: 88px;
+  --avatars-bg-fill-position: right center;
+  --avatars-bg-fill-size: 42%;
+  --avatars-bg-focus-position-x: right;
+  --avatars-bg-focus-position-y: 30%;
+  --avatars-bg-focus-size: 14%;
   --avatars-switch-top: 8px;
   --avatars-switch-right: auto;
   --avatars-switch-left: 70%;
@@ -1895,26 +1900,19 @@ body {
   z-index: 2;
 }
 
-.avatars-stage-bg {
+.avatars-stage-photo {
   position: absolute;
-  transform: (100%, -50%);
   inset: 0;
-  background-position: right top;
-  background-size: 70%;
-  background-repeat: no-repeat;
+  background-image: var(--avatars-stage-image), var(--avatars-stage-image);
+  background-position:
+    var(--avatars-bg-fill-position),
+    var(--avatars-bg-focus-position-x) var(--avatars-bg-focus-position-y);
+  background-size:
+    var(--avatars-bg-fill-size),
+    var(--avatars-bg-focus-size);
+  background-repeat: no-repeat, no-repeat;
   filter: grayscale(1);
   opacity: 0.9;
-  transform: translateY(-90px) translateX(80px);
-}
-
-.avatars-stage-bg-fill {
-  position: absolute;
-  inset: 0;
-  background-position: center center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  filter: grayscale(1);
-  opacity: 0.36;
 }
 
 .avatars-stage-panel::after {
@@ -2023,6 +2021,13 @@ body {
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.avatars-gradient-accent .avatars-prototype-subtitle {
+  background-image: var(--avatars-accent-gradient);
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .avatars-prototype-hpbox {
@@ -2175,6 +2180,8 @@ body {
     min-height: 120px;
     --avatars-panel-left-overhang: 56px;
     --avatars-switch-width: min(320px, calc(100% - 32px));
+    --avatars-bg-fill-size: 56%;
+    --avatars-bg-focus-size: 11%;
   }
 
   .avatars-stage-panel {
@@ -2207,6 +2214,8 @@ body {
     min-height: 700px;
     --avatars-panel-left-overhang: 18px;
     --avatars-switch-width: min(280px, calc(100% - 28px));
+    --avatars-bg-fill-size: 34%;
+    --avatars-bg-focus-size: 10%;
   }
 
   .avatars-card-column {
