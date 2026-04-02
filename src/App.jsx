@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 
 const AVATAR_OPTIONS = [
   {
     name: "Thalindra",
     hp: 970,
-    type: "Mítico",
+    type: "MÃ­tico",
     weakness: "Multiversal",
     typeIcon: "/types/mitico.png",
     image: "/avatars/Thalindra.jpg",
@@ -32,25 +32,25 @@ const AVATAR_OPTIONS = [
     name: "Sarah Ardent",
     hp: 965,
     type: "Guerrero",
-    weakness: "Mágico",
+    weakness: "MÃ¡gico",
     typeIcon: "/types/guerrero.png",
     image: "/avatars/Sarah-Ardent.jpg",
     bgFit: "cover",
     bgPosition: "center top",
     attacks: [
       {
-        name: "Aliento de Dragón",
+        name: "Aliento de DragÃ³n",
         damage: 180,
         description:
-          "Si se activa después de que se haya usado el ataque secundario el turno anterior, hará +20 PD extra.",
+          "Si se activa despuÃ©s de que se haya usado el ataque secundario el turno anterior, harÃ¡ +20 PD extra.",
         effect: {
           type: "bonus_if_previous_turn_attack_was",
-          attackName: "Flecha Flamígera",
+          attackName: "Flecha FlamÃ­gera",
           bonusDamage: 20,
         },
       },
       {
-        name: "Flecha Flamígera",
+        name: "Flecha FlamÃ­gera",
         damage: 90,
         description:
           "Durante los 2 turnos siguientes, los ataques que reciba el avatar se reducen en 10 PD.",
@@ -66,7 +66,7 @@ const AVATAR_OPTIONS = [
     name: "Aethera Hex",
     hp: 980,
     type: "Multiversal",
-    weakness: "Mítico",
+    weakness: "MÃ­tico",
     typeIcon: "/types/multiversal.png",
     image: "/avatars/Aethera-Hex.jpg",
     bgFit: "cover",
@@ -90,14 +90,14 @@ const AVATAR_OPTIONS = [
     name: "Citlali Teyah",
     hp: 940,
     type: "Guerrero",
-    weakness: "Mágico",
+    weakness: "MÃ¡gico",
     typeIcon: "/types/guerrero.png",
     image: "/avatars/Citlali-Teyah.jpg",
     bgFit: "cover",
     bgPosition: "center top",
     attacks: [
       {
-        name: "Ritual de Quetzalcóatl",
+        name: "Ritual de QuetzalcÃ³atl",
         damage: 160,
         description: "",
         effect: null,
@@ -113,7 +113,7 @@ const AVATAR_OPTIONS = [
   {
     name: "Hal'Lethrra",
     hp: 945,
-    type: "Mágico",
+    type: "MÃ¡gico",
     weakness: "Guerrero",
     typeIcon: "/types/magico.png",
     image: "/avatars/Hal-Lethrra.jpg",
@@ -127,7 +127,7 @@ const AVATAR_OPTIONS = [
         effect: null,
       },
       {
-        name: "Maldición y Sacrificio",
+        name: "MaldiciÃ³n y Sacrificio",
         damage: 80,
         description: "Cada vez que se active, este avatar sufre 40 PD.",
         effect: {
@@ -140,7 +140,7 @@ const AVATAR_OPTIONS = [
   {
     name: "Nefereth Ra",
     hp: 950,
-    type: "Mítico",
+    type: "MÃ­tico",
     weakness: "Multiversal",
     typeIcon: "/types/mitico.png",
     image: "/avatars/Nefereth-Ra.jpg",
@@ -148,7 +148,7 @@ const AVATAR_OPTIONS = [
     bgPosition: "center top",
     attacks: [
       {
-        name: "Maldición de Sol Egipcio",
+        name: "MaldiciÃ³n de Sol Egipcio",
         damage: 180,
         description:
           "Si el avatar enemigo tiene 600 PV o menos, este ataque hace +30 PD extra.",
@@ -180,7 +180,7 @@ const AVATAR_OPTIONS = [
       name: "Castigo Celestial",
       damage: 170,
       description:
-        "Si este ataque baja los PV del Avatar Principal del oponente a 700 PV o menos, el oponente no podrá colocar EM en su siguiente turno.",
+        "Si este ataque baja los PV del Avatar Principal del oponente a 700 PV o menos, el oponente no podrÃ¡ colocar EM en su siguiente turno.",
       effect: {
         type: "if_attack_leaves_enemy_main_at_or_below_block_em",
         threshold: 700,
@@ -190,7 +190,7 @@ const AVATAR_OPTIONS = [
       name: "Espada de Gracia Divina",
       damage: 75,
       description:
-        "Si este ataque se ejecuta antes que 'Castigo Celestial' como 1er ataque en partida, inflige +10 PD. Además, si el Avatar Principal del oponente es de tipo Oscuro / Demoniaco, inflige +10 PD extra.",
+        "Si este ataque se ejecuta antes que 'Castigo Celestial' como 1er ataque en partida, inflige +10 PD. AdemÃ¡s, si el Avatar Principal del oponente es de tipo Oscuro / Demoniaco, inflige +10 PD extra.",
       effect: {
         type: "compound",
         effects: [
@@ -213,7 +213,7 @@ const AVATAR_OPTIONS = [
   name: "Elariss",
   hp: 940,
   type: "Guerrero",
-  weakness: "Mágico",
+  weakness: "MÃ¡gico",
   typeIcon: "/types/guerrero.png",
   image: "/avatars/Elariss.jpg",
   bgFit: "cover",
@@ -223,18 +223,18 @@ const AVATAR_OPTIONS = [
       name: "Pacto de Honor y Gloria",
       damage: 160,
       description:
-        "Si el Avatar Principal del oponente es de tipo Mágico: no podrá jugar Cartas de Azar en su siguiente turno y este ataque inflige +20 PD.",
+        "Si el Avatar Principal del oponente es de tipo MÃ¡gico: no podrÃ¡ jugar Cartas de Azar en su siguiente turno y este ataque inflige +20 PD.",
       effect: {
         type: "enemy_main_type_bonus_and_block_chance",
-        enemyType: "Mágico",
+        enemyType: "MÃ¡gico",
         bonusDamage: 20,
       },
     },
     {
-      name: "Sigilo Perfecto de Halcón",
+      name: "Sigilo Perfecto de HalcÃ³n",
       damage: 80,
       description:
-        "Si este ataque se activa antes de 'Pacto de Honor y Gloria' por primera vez en la partida, roba 1 carta extra de tu mazo y tu oponente deberá descartar 1 carta de su mano aleatoriamente.",
+        "Si este ataque se activa antes de 'Pacto de Honor y Gloria' por primera vez en la partida, roba 1 carta extra de tu mazo y tu oponente deberÃ¡ descartar 1 carta de su mano aleatoriamente.",
       effect: {
         type: "first_before_named_attack_draw_and_discard",
         attackName: "Pacto de Honor y Gloria",
@@ -248,7 +248,7 @@ const AVATAR_OPTIONS = [
   name: "Artemia",
   hp: 950,
   type: "Guerrero",
-  weakness: "Mágico",
+  weakness: "MÃ¡gico",
   typeIcon: "/types/guerrero.png",
   image: "/avatars/Artemia.jpg",
   bgFit: "cover",
@@ -258,7 +258,7 @@ const AVATAR_OPTIONS = [
       name: "Coliseo de Arena y Sangre",
       damage: 185,
       description:
-        "Si el oponente tiene 4 o más cartas en su pila de descarte, podrás unir 1 carta de EM extra en este turno. Si no tienes EM en tu mano, roba 1 carta extra de tu mazo.",
+        "Si el oponente tiene 4 o mÃ¡s cartas en su pila de descarte, podrÃ¡s unir 1 carta de EM extra en este turno. Si no tienes EM en tu mano, roba 1 carta extra de tu mazo.",
       effect: {
         type: "enemy_discard_pile_condition_extra_em_or_draw",
         threshold: 4,
@@ -268,11 +268,11 @@ const AVATAR_OPTIONS = [
       name: "Doble Filo Romano",
       damage: 100,
       description:
-        "El próximo ataque del oponente inflige -20 PD. Si el Avatar del oponente es de tipo Mágico, el daño de su siguiente ataque se reduce a -30 PD.",
+        "El prÃ³ximo ataque del oponente inflige -20 PD. Si el Avatar del oponente es de tipo MÃ¡gico, el daÃ±o de su siguiente ataque se reduce a -30 PD.",
       effect: {
         type: "reduce_enemy_next_attack",
         baseReduction: 20,
-        enemyType: "Mágico",
+        enemyType: "MÃ¡gico",
         typeReduction: 30,
       },
     },
@@ -290,20 +290,20 @@ const AVATAR_OPTIONS = [
   bgPosition: "center top",
   attacks: [
     {
-      name: "Profanación Prohibida",
+      name: "ProfanaciÃ³n Prohibida",
       damage: 165,
       description:
-        "Si el Avatar Principal del oponente es de tipo Luz / Celestial, roba la carta superior de su mazo durante el resto de la partida. Hazlo revelándola y luego colocándola en tu mano.",
+        "Si el Avatar Principal del oponente es de tipo Luz / Celestial, roba la carta superior de su mazo durante el resto de la partida. Hazlo revelÃ¡ndola y luego colocÃ¡ndola en tu mano.",
       effect: {
         type: "enemy_main_type_steal_top_deck_each_turn",
         enemyType: "Luz / Celestial",
       },
     },
     {
-      name: "Cacería de Almas",
+      name: "CacerÃ­a de Almas",
       damage: 80,
       description:
-        "Si tu oponente tiene 1 o más EM ligadas en sus Avatares o Cartas de Azar, este ataque inflige +10 PD y Zahriel recupera +5 PV.",
+        "Si tu oponente tiene 1 o mÃ¡s EM ligadas en sus Avatares o Cartas de Azar, este ataque inflige +10 PD y Zahriel recupera +5 PV.",
       effect: {
         type: "if_enemy_has_energy_or_chance_bonus_and_heal",
         bonusDamage: 10,
@@ -315,7 +315,7 @@ const AVATAR_OPTIONS = [
  {
     name: "Kohana Saionji",
     hp: 950,
-    type: "Mágico",
+    type: "MÃ¡gico",
     weakness: "Multiversal",
     typeIcon: "/types/magico.png",
     image: "/avatars/Kohana.jpg",
@@ -326,7 +326,7 @@ const AVATAR_OPTIONS = [
       name: "Conjuro Prohibido Saionji",
       damage: 175,
       description:
-        "Inflige +3 PD extra por cada carta en la mano del oponente (máx. +60 PD). Si el enemigo es tipo Guerrero, inflige +20 PD.",
+        "Inflige +3 PD extra por cada carta en la mano del oponente (mÃ¡x. +60 PD). Si el enemigo es tipo Guerrero, inflige +20 PD.",
       effect: {
         type: "compound",
         effects: [
@@ -344,10 +344,10 @@ const AVATAR_OPTIONS = [
       },
     },
     {
-      name: "Katana Kuro-mahō",
+      name: "Katana Kuro-mahÅ",
       damage: 120,
       description:
-        "Si el oponente ligó EM en su turno anterior, inflige +25 PD. Si no, deberá descartar aleatoriamente una carta de Objeto o Azar de su mano.",
+        "Si el oponente ligÃ³ EM en su turno anterior, inflige +25 PD. Si no, deberÃ¡ descartar aleatoriamente una carta de Objeto o Azar de su mano.",
       effect: {
         type: "conditional_previous_turn_em",
         bonusDamage: 25,
@@ -399,7 +399,7 @@ const AVATAR_OPTIONS = [
       name: "Eterna Condena Blasfema",
       damage: 210,
       description:
-        "El oponente no puede usar Cartas de Objetos o Habilidades de Curación durante 2 turnos. Si el avatar enemigo tiene 600 PV o menos, inflige +10 PD.",
+        "El oponente no puede usar Cartas de Objetos o Habilidades de CuraciÃ³n durante 2 turnos. Si el avatar enemigo tiene 600 PV o menos, inflige +10 PD.",
       effect: {
         type: "compound",
         effects: [
@@ -416,10 +416,10 @@ const AVATAR_OPTIONS = [
       },
     },
     {
-      name: "Horda Dévora-Almas",
+      name: "Horda DÃ©vora-Almas",
       damage: 120,
       description:
-        "Si tu avatar Secundario es de tipo Oscuro / Demoniaco, al usar este ataque inflige +30 PD. Además, el oponente revela su mano y descarta 1 carta al azar.",
+        "Si tu avatar Secundario es de tipo Oscuro / Demoniaco, al usar este ataque inflige +30 PD. AdemÃ¡s, el oponente revela su mano y descarta 1 carta al azar.",
       effect: {
         type: "compound",
         effects: [
@@ -444,9 +444,9 @@ const SECONDARY_AVATARS = [
     id: "hella",
     name: "Hella Mogarth",
     hp: 820,
-    summonCardName: "Báculo de las Almas Caídas",
+    summonCardName: "BÃ¡culo de las Almas CaÃ­das",
     image: "/secondary/Hella.png",
-    summonImage: "/secondary/INV - Báculo de las Almas Caídas.png",
+    summonImage: "/secondary/INV - BÃ¡culo de las Almas CaÃ­das.png",
     type: "Oscuro / Demoniaco",
     typeIcon: "/types/oscuro-demoniaco.png",
     weakness: "Luz / Celestial",
@@ -456,17 +456,17 @@ const SECONDARY_AVATARS = [
         name: "Despertar de Ultratumba",
         damage: 100,
         description:
-          "Durante el próximo turno del oponente, su ataque inflige +30 PD. Luego toma 2 cartas de tu pila de descarte y regrésalas a tu mano.",
+          "Durante el prÃ³ximo turno del oponente, su ataque inflige +30 PD. Luego toma 2 cartas de tu pila de descarte y regrÃ©salas a tu mano.",
         effect: {
           type: "grant_enemy_next_turn_bonus_damage",
           amount: 30,
         },
       },
       {
-        name: "Maldición del Cetro",
+        name: "MaldiciÃ³n del Cetro",
         damage: 90,
         description:
-          "Si atacas a un avatar de tipo Luz / Celestial, inflige +20 PD. Cada vez que este ataque se invoque, este avatar secundario obtendrá -20 PV.",
+          "Si atacas a un avatar de tipo Luz / Celestial, inflige +20 PD. Cada vez que este ataque se invoque, este avatar secundario obtendrÃ¡ -20 PV.",
         effect: {
           type: "compound",
           effects: [
@@ -491,7 +491,7 @@ const SECONDARY_AVATARS = [
     summonCardName: "Mirada de Medusa",
     image: "/secondary/Medusa.png",
     summonImage: "/secondary/INV - Mirada de Medusa.png",
-    type: "Mítico",
+    type: "MÃ­tico",
     typeIcon: "/types/mitico.png",
     weakness: "Multiversal",
     turnsDuration: 10,
@@ -500,7 +500,7 @@ const SECONDARY_AVATARS = [
         name: "Encanto Petrificante",
         damage: 130,
         description:
-          "Si es su primer ataque y se activa antes de TIRO ENVENENADO: Medusa recupera su 50% de PV que perdió al ser invocada. Si no es así, el oponente en su próximo turno no podrá ligar EM ni a su avatar principal, ni a su avatar secundario.",
+          "Si es su primer ataque y se activa antes de TIRO ENVENENADO: Medusa recupera su 50% de PV que perdiÃ³ al ser invocada. Si no es asÃ­, el oponente en su prÃ³ximo turno no podrÃ¡ ligar EM ni a su avatar principal, ni a su avatar secundario.",
         effect: {
           type: "medusa_first_attack_or_block_em",
         },
@@ -509,7 +509,7 @@ const SECONDARY_AVATARS = [
         name: "Tiro Envenenado",
         damage: 40,
         description:
-          "Cuando actives por primera vez este ataque, el oponente perderá 5 PV cada turno hasta que Medusa salga de juego.",
+          "Cuando actives por primera vez este ataque, el oponente perderÃ¡ 5 PV cada turno hasta que Medusa salga de juego.",
         effect: {
           type: "poison_until_secondary_leaves",
           amount: 5,
@@ -543,7 +543,7 @@ const SECONDARY_AVATARS = [
         name: "Defensa Divina",
         damage: 70,
         description:
-          "Si este ataque va dirigido a un avatar tipo Oscuro / Demoniaco, reduce en -30 PD el próximo ataque que reciba tu avatar principal.",
+          "Si este ataque va dirigido a un avatar tipo Oscuro / Demoniaco, reduce en -30 PD el prÃ³ximo ataque que reciba tu avatar principal.",
         effect: {
           type: "grant_main_damage_reduction_if_enemy_type",
           enemyType: "Oscuro / Demoniaco",
@@ -559,7 +559,7 @@ const SECONDARY_AVATARS = [
     summonCardName: "Sangre y Alas Liberadas",
     image: "/secondary/Valdrea.png",
     summonImage: "/secondary/INV - Sangre y Alas Liberadas.png",
-    type: "Mítico",
+    type: "MÃ­tico",
     typeIcon: "/types/mitico.png",
     weakness: "Multiversal",
     turnsDuration: 10,
@@ -568,7 +568,7 @@ const SECONDARY_AVATARS = [
         name: "Alas de Condena y Justicia",
         damage: 120,
         description:
-          "Si este ataque golpea a un avatar principal de tipo Multiversal, este ataque inflige +20 PD la próxima vez que se active.",
+          "Si este ataque golpea a un avatar principal de tipo Multiversal, este ataque inflige +20 PD la prÃ³xima vez que se active.",
         effect: {
           type: "bonus_next_time_if_hits_main_multiversal",
           bonusDamage: 20,
@@ -589,24 +589,24 @@ const SECONDARY_AVATARS = [
   },
   {
     id: "karessa",
-    name: "Karessa Dránn",
+    name: "Karessa DrÃ¡nn",
     hp: 850,
-    summonCardName: "Furia de Yelmo Dránnico",
+    summonCardName: "Furia de Yelmo DrÃ¡nnico",
     image: "/secondary/Karessa.png",
-    summonImage: "/secondary/INV - Furia de Yelmo Dránnico.png",
+    summonImage: "/secondary/INV - Furia de Yelmo DrÃ¡nnico.png",
     type: "Multiversal",
     typeIcon: "/types/multiversal.png",
-    weakness: "Mítico",
+    weakness: "MÃ­tico",
     turnsDuration: 10,
     attacks: [
       {
-        name: "Cortadura Hiriente Neón",
+        name: "Cortadura Hiriente NeÃ³n",
         damage: 100,
         description:
-          "Si el oponente es de tipo Mítico, este ataque inflige +10 PD. Además, ambos jugadores roban 1 carta de su mazo al mismo tiempo.",
+          "Si el oponente es de tipo MÃ­tico, este ataque inflige +10 PD. AdemÃ¡s, ambos jugadores roban 1 carta de su mazo al mismo tiempo.",
         effect: {
           type: "enemy_type_bonus",
-          enemyType: "Mítico",
+          enemyType: "MÃ­tico",
           bonusDamage: 10,
         },
       },
@@ -614,7 +614,7 @@ const SECONDARY_AVATARS = [
         name: "Runa Victoriosa",
         damage: 70,
         description:
-          "Si al activar este ataque, Karessa está a 3 turnos o menos de salir de juego, la EM usada para activarlo regresa a tu mano.",
+          "Si al activar este ataque, Karessa estÃ¡ a 3 turnos o menos de salir de juego, la EM usada para activarlo regresa a tu mano.",
         effect: {
           type: "secondary_turns_remaining_bonus_condition",
           thresholdTurns: 3,
@@ -629,7 +629,7 @@ const SECONDARY_AVATARS = [
     summonCardName: "Ritual de la Biblioteca Negra",
     image: "/secondary/Necrondra.png",
     summonImage: "/secondary/INV - Ritual de la Biblioteca Negra.png",
-    type: "Mágico",
+    type: "MÃ¡gico",
     typeIcon: "/types/magico.png",
     weakness: "Multiversal",
     turnsDuration: 10,
@@ -638,7 +638,7 @@ const SECONDARY_AVATARS = [
         name: "Hechizo de Ceguera Mental",
         damage: 120,
         description:
-          "Toma 2 cartas de tu mazo y revélalas a tu oponente. Luego, añádelas a tu mano, baraja y haz que tu oponente escoja 1 carta al azar. Esa carta se descarta.",
+          "Toma 2 cartas de tu mazo y revÃ©lalas a tu oponente. Luego, aÃ±Ã¡delas a tu mano, baraja y haz que tu oponente escoja 1 carta al azar. Esa carta se descarta.",
         effect: {
           type: "draw_and_opponent_random_discard",
           drawCount: 2,
@@ -671,56 +671,56 @@ const SECONDARY_AVATARS = [
 
 const LIBRARY_FILE_NAMES = [
   "AZ - Abismo Desesperante.png",
-  "AZ - Alquimista Tacaña.png",
+  "AZ - Alquimista TacaÃ±a.png",
   "AZ - Cardinales del Mago.png",
   "AZ - Cazadora del Inframundo.png",
-  "AZ - Guardián de los 6 Pilares.png",
+  "AZ - GuardiÃ¡n de los 6 Pilares.png",
   "AZ - Invocadora Ultra Celestial.png",
   "AZ - Juicio de los Diez Netjeru.png",
   "AZ - Ley del Vidente Ciego.png",
   "AZ - Paradoja Atemporal.png",
-  "AZ - Valentía Felina.png",
+  "AZ - ValentÃ­a Felina.png",
   "C - Eco del Turno Perdido.png",
   "C - Elixir de Lucidez Forzada.png",
   "C - Espejo Decisivo.png",
   "C - Juramento Suspendido.png",
   "C - Mirada Inquietante.png",
-  "C - Poción de Resguardo.png",
-  "C - Poción de Vida Carmesí.png",
-  "C - Pulso Tardío.png",
+  "C - PociÃ³n de Resguardo.png",
+  "C - PociÃ³n de Vida CarmesÃ­.png",
+  "C - Pulso TardÃ­o.png",
   "C - Sello del Silencio.png",
-  "C - Suerte Líquida.png",
-  "E - Acción Rebote.png",
-  "E - Cápsula de Energía Total.png",
-  "E - Desición Instantánea.png",
+  "C - Suerte LÃ­quida.png",
+  "E - AcciÃ³n Rebote.png",
+  "E - CÃ¡psula de EnergÃ­a Total.png",
+  "E - DesiciÃ³n InstantÃ¡nea.png",
   "E - Fenix Multiversal.png",
   "E - Juramento Sacrificado.png",
   "E - Rayo de Zeus.png",
-  "E - Reloj de Energía Suspendida.png",
+  "E - Reloj de EnergÃ­a Suspendida.png",
   "E - Sentencia Despiadada.png",
-  "E - Vínculo del Alma.png",
-  "E - Yelmo de Salvación.png",
-  "EM - Gran Dominio Energético.png",
-  "EM - Cataclismo Energético.png",
-  "EM - Doble Energía Maldita.png",
-  "EM - Energía Anclaversal.png",
-  "EM - Energía de Azar Multiversal.png",
-  "EM - Energía de Multiplicación.png",
-  "EM - Energía Gigaversal.png",
-  "EM - Energía Multiversal Alpha.png",
-  "EM - Energía Multiversal Dual.png",
-  "EM - Energía Neo-Multiversal.png",
-  "EM - Triple Energía Sagrada.png",
-  "Energía Multiversal.png",
-  "INV - Báculo de las Almas Caídas.png",
+  "E - VÃ­nculo del Alma.png",
+  "E - Yelmo de SalvaciÃ³n.png",
+  "EM - Gran Dominio EnergÃ©tico.png",
+  "EM - Cataclismo EnergÃ©tico.png",
+  "EM - Doble EnergÃ­a Maldita.png",
+  "EM - EnergÃ­a Anclaversal.png",
+  "EM - EnergÃ­a de Azar Multiversal.png",
+  "EM - EnergÃ­a de MultiplicaciÃ³n.png",
+  "EM - EnergÃ­a Gigaversal.png",
+  "EM - EnergÃ­a Multiversal Alpha.png",
+  "EM - EnergÃ­a Multiversal Dual.png",
+  "EM - EnergÃ­a Neo-Multiversal.png",
+  "EM - Triple EnergÃ­a Sagrada.png",
+  "EnergÃ­a Multiversal.png",
+  "INV - BÃ¡culo de las Almas CaÃ­das.png",
   "INV - Llamado de Guerra Celestial.png",
   "INV - Mirada de Medusa.png",
   "INV - Sangre y Alas Liberadas.png",
-  "INV - Furia de Yelmo Dránnico.png",
+  "INV - Furia de Yelmo DrÃ¡nnico.png",
   "INV - Ritual de la Biblioteca Negra.png",
-  "L - Códice Absoluto.png",
+  "L - CÃ³dice Absoluto.png",
   "L - Despojo Hiriente.png",
-  "L - Escudo del Último Aliento.png",
+  "L - Escudo del Ãšltimo Aliento.png",
   "L - Gracia del Destino.png",
   "L - Regalo Divino CELTA.png",
   "L - Regalo Divino EGIP.png",
@@ -728,13 +728,13 @@ const LIBRARY_FILE_NAMES = [
   "L - Regalo Divino JAP.png",
   "L - Regalo Divino ROMANO.png",
   "L - Sed de Justicia.png",
-  "R - Anulación Absoluta.png",
+  "R - AnulaciÃ³n Absoluta.png",
   "R - Destino Blasfemo.png",
   "R - Equilibrio Multiversal.png",
-  "R - Juicio del Oráculo.png",
+  "R - Juicio del OrÃ¡culo.png",
   "R - Marca del Juicio Final.png",
-  "R - Ojo de Retorno Carmesí.png",
-  "R - Ojo del Oráculo.png",
+  "R - Ojo de Retorno CarmesÃ­.png",
+  "R - Ojo del OrÃ¡culo.png",
   "R - Relicario Divino.png",
   "R - Reloj del Juicio.png",
   "R Fisura Multiversal.png",
@@ -743,21 +743,21 @@ const LIBRARY_FILE_NAMES = [
 const LIBRARY_PREFIX_META = {
   C: {
     category: "Objeto",
-    rarity: "Común",
+    rarity: "ComÃºn",
     tone: "common",
-    summary: "Carta común de objeto dentro del catálogo general del juego.",
+    summary: "Carta comÃºn de objeto dentro del catÃ¡logo general del juego.",
   },
   E: {
     category: "Objeto",
-    rarity: "Épica",
+    rarity: "Ã‰pica",
     tone: "epic",
-    summary: "Carta épica de objeto pensada para jugadas de alto impacto.",
+    summary: "Carta Ã©pica de objeto pensada para jugadas de alto impacto.",
   },
   R: {
     category: "Objeto",
     rarity: "Rara",
     tone: "rare",
-    summary: "Carta rara de objeto con presencia ofensiva o táctica destacada.",
+    summary: "Carta rara de objeto con presencia ofensiva o tÃ¡ctica destacada.",
   },
   L: {
     category: "Objeto",
@@ -766,16 +766,16 @@ const LIBRARY_PREFIX_META = {
     summary: "Carta legendaria de objeto reservada para efectos decisivos.",
   },
   EM: {
-    category: "Energía",
-    rarity: "Energía",
+    category: "EnergÃ­a",
+    rarity: "EnergÃ­a",
     tone: "energy",
-    summary: "Carta de energía enfocada en acelerar o potenciar estrategias.",
+    summary: "Carta de energÃ­a enfocada en acelerar o potenciar estrategias.",
   },
   INV: {
-    category: "Invocación",
-    rarity: "Invocación",
+    category: "InvocaciÃ³n",
+    rarity: "InvocaciÃ³n",
     tone: "summon",
-    summary: "Carta de invocación vinculada a apariciones y apoyo de campo.",
+    summary: "Carta de invocaciÃ³n vinculada a apariciones y apoyo de campo.",
   },
   AZ: {
     category: "Azar",
@@ -842,7 +842,7 @@ const LIBRARY_CARD_OVERRIDES = {
     frameAccent: "#ff7aa6",
   },
   "energia-multiversal": {
-    energyRarity: "Común",
+    energyRarity: "ComÃºn",
   },
   "energia-multiversal-alpha": {
     energyRarity: "Rara",
@@ -851,7 +851,7 @@ const LIBRARY_CARD_OVERRIDES = {
     energyRarity: "Rara",
   },
   "triple-energia-sagrada": {
-    energyRarity: "Épica",
+    energyRarity: "Ã‰pica",
   },
   "energia-neo-multiversal": {
     energyRarity: "Rara",
@@ -873,7 +873,7 @@ const LIBRARY_CARD_OVERRIDES = {
     panelAccentEnd: "#3f87ff",
   },
   "doble-energia-maldita": {
-    energyRarity: "Épica",
+    energyRarity: "Ã‰pica",
   },
   "energia-de-azar-multiversal": {
     energyRarity: "Rara",
@@ -926,7 +926,7 @@ const LIBRARY_CARD_OVERRIDES = {
 const parseLibraryCardFileName = (fileName) => {
   const baseName = fileName.replace(/\.png$/i, "");
 
-  if (!/^Energ[ií]a\b/i.test(baseName)) {
+  if (!/^Energ[iÃ­]a\b/i.test(baseName)) {
     const match = baseName.match(/^(AZ|EM|INV|C|E|L|R)\s*-?\s*(.+)$/);
 
     if (match) {
@@ -951,7 +951,106 @@ const slugifyLibraryName = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const toLibraryImagePath = (fileName) => `/library/${encodeURIComponent(fileName)}`;
+const LIBRARY_ASSET_FILES = [
+  "AZ - Abismo Desesperante.png",
+  "AZ - Alquimista Tacaña.png",
+  "AZ - Cardinales del Mago.png",
+  "AZ - Cazadora del Inframundo.png",
+  "AZ - Guardián de los 6 Pilares.png",
+  "AZ - Invocadora Ultra Celestial.png",
+  "AZ - Juicio de los Diez Netjeru.png",
+  "AZ - Ley del Vidente Ciego.png",
+  "AZ - Paradoja Atemporal.png",
+  "AZ - Valentía Felina.png",
+  "C - Eco del Turno Perdido.png",
+  "C - Elixir de Lucidez Forzada.png",
+  "C - Espejo Decisivo.png",
+  "C - Juramento Suspendido.png",
+  "C - Mirada Inquietante.png",
+  "C - Poción de Resguardo.png",
+  "C - Poción de Vida Carmesí.png",
+  "C - Pulso Tardío.png",
+  "C - Sello del Silencio.png",
+  "C - Suerte Líquida.png",
+  "E - Acción Rebote.png",
+  "E - Cápsula de Energía Total.png",
+  "E - Desición Instantánea.png",
+  "E - Fenix Multiversal.png",
+  "E - Juramento Sacrificado.png",
+  "E - Rayo de Zeus.png",
+  "E - Reloj de Energía Suspendida.png",
+  "E - Sentencia Despiadada.png",
+  "E - Vínculo del Alma.png",
+  "E - Yelmo de Salvación.png",
+  "EM - Cataclismo Energético.png",
+  "EM - Doble Energía Maldita.png",
+  "EM - Energía Anclaversal.png",
+  "EM - Energía de Azar Multiversal.png",
+  "EM - Energía de Multiplicación.png",
+  "EM - Energía Gigaversal.png",
+  "EM - Energía Multiversal Alpha.png",
+  "EM - Energía Multiversal Dual.png",
+  "EM - Energía Neo-Multiversal.png",
+  "EM - Gran Dominio Energético.png",
+  "EM - Triple Energía Sagrada.png",
+  "Energía Multiversal.png",
+  "INV - Báculo de las Almas Caídas.png",
+  "INV - Furia de Yelmo Dránnico.png",
+  "INV - Llamado de Guerra Celestial.png",
+  "INV - Mirada de Medusa.png",
+  "INV - Ritual de la Biblioteca Negra.png",
+  "INV - Sangre y Alas Liberadas.png",
+  "L - Códice Absoluto.png",
+  "L - Despojo Hiriente.png",
+  "L - Escudo del Último Aliento.png",
+  "L - Gracia del Destino.png",
+  "L - Regalo Divino CELTA.png",
+  "L - Regalo Divino EGIP.png",
+  "L - Regalo Divino GRIEGO.png",
+  "L - Regalo Divino JAP.png",
+  "L - Regalo Divino ROMANO.png",
+  "L - Sed de Justicia.png",
+  "R - Anulación Absoluta.png",
+  "R - Destino Blasfemo.png",
+  "R - Equilibrio Multiversal.png",
+  "R - Juicio del Oráculo.png",
+  "R - Marca del Juicio Final.png",
+  "R - Ojo de Retorno Carmesí.png",
+  "R - Ojo del Oráculo.png",
+  "R - Relicario Divino.png",
+  "R - Reloj del Juicio.png",
+  "R Fisura Multiversal.png",
+];
+
+const normalizeLibraryAssetName = (value) => {
+  let normalized = value;
+
+  if (typeof normalized === "string" && /[ÃƒÃ‚Ã¢]/.test(normalized)) {
+    try {
+      normalized = new TextDecoder("utf-8").decode(
+        Uint8Array.from(normalized, (char) => char.charCodeAt(0))
+      );
+    } catch {
+      normalized = value;
+    }
+  }
+
+  return normalized
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9.]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+};
+
+const toLibraryImagePath = (fileName) => {
+  const target = normalizeLibraryAssetName(fileName);
+  const matchedFile = LIBRARY_ASSET_FILES.find(
+    (assetFile) => normalizeLibraryAssetName(assetFile) === target
+  );
+  return `/library/${encodeURIComponent(matchedFile ?? fileName)}`;
+};
 
 const LIBRARY_CARDS = LIBRARY_FILE_NAMES.map((fileName, index) => {
   const { prefix, rawName } = parseLibraryCardFileName(fileName);
@@ -979,9 +1078,9 @@ const LIBRARY_CARDS = LIBRARY_FILE_NAMES.map((fileName, index) => {
 
 const getChanceRarityLabel = (chanceStars = 0) => {
   if (chanceStars >= 3) return "Legendaria";
-  if (chanceStars === 2) return "Épica";
+  if (chanceStars === 2) return "Ã‰pica";
   if (chanceStars === 1) return "Rara";
-  return "Común";
+  return "ComÃºn";
 };
 
 const getEnergyRarityLabel = (card) => card.energyRarity ?? card.rarity;
@@ -1012,7 +1111,7 @@ const getLibrarySelectorMetaLabel = (card) => {
     rarityLabel === "Legendaria" ? "LEGEND." : rarityLabel.toUpperCase();
 
   if (card.tone === "summon") {
-    return "INVOCACIÓN";
+    return "INVOCACIÃ“N";
   }
 
   if (card.tone === "energy") {
@@ -1031,7 +1130,7 @@ const getLibrarySelectorMetaLabel = (card) => {
 };
 
 const normalizeDisplayText = (value) => {
-  if (typeof value !== "string" || !/[ÃÂâ]/.test(value)) return value;
+  if (typeof value !== "string" || !/[ÃƒÃ‚Ã¢]/.test(value)) return value;
 
   try {
     return new TextDecoder("utf-8").decode(
@@ -1878,7 +1977,7 @@ function LibraryScreen({ onGoHome }) {
   return (
     <div className={`library-screen library-tone-${selectedCard.tone}`}>
       <div className="library-topbar">
-        <h1>Librería</h1>
+        <h1>LibrerÃ­a</h1>
         <div className="library-topbar-right">
           <input
             type="text"
@@ -2001,25 +2100,125 @@ function LibraryScreen({ onGoHome }) {
   );
 }
 
+const AVATAR_CARD_FILES = [
+  "Aethera-Hex.png",
+  "Artemia.png",
+  "Aurhiel.png",
+  "Citlali-Teyah.png",
+  "Elariss.png",
+  "Hal'Lethrra.png",
+  "Hella-Mogarth.png",
+  "Karessa-Drann.png",
+  "Kohana.png",
+  "Medusa.png",
+  "Necrondra.png",
+  "Nefereth-Ra.png",
+  "Noxaria.png",
+  "Prismara.png",
+  "Sarah Ardent.png",
+  "Solaria.png",
+  "Thalindra.png",
+  "Valdrea-Noir.png",
+  "Zahriel.png",
+];
+
+const normalizeAvatarAssetName = (value) =>
+  normalizeDisplayText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+
+const getAvatarCardImage = (avatarName) => {
+  const target = normalizeAvatarAssetName(avatarName);
+  const matchedFile = AVATAR_CARD_FILES.find((fileName) => {
+    const baseName = fileName.replace(/\.png$/i, "");
+    const normalizedBaseName = normalizeAvatarAssetName(baseName);
+    return (
+      normalizedBaseName === target ||
+      target.startsWith(`${normalizedBaseName}-`) ||
+      normalizedBaseName.startsWith(`${target}-`)
+    );
+  });
+
+  return matchedFile ? `/avatars/cards/${matchedFile}` : null;
+};
+
+const AVATAR_LORE_SUMMARIES = {
+  thalindra:
+    "Thalindra custodia el Vivarium, uno de los santuarios mas sagrados del universo mitico. Su presencia mantiene el bosque vivo, feroz y en equilibrio con la Energia Multiversal.",
+};
+
+const getAvatarLoreSummary = (avatarName) => {
+  const key = normalizeAvatarAssetName(avatarName);
+  return (
+    AVATAR_LORE_SUMMARIES[key] ??
+    `${normalizeDisplayText(avatarName)} es uno de los avatares clave del multiverso JHOYCE. Esta vista sera la ficha de presentacion definitiva para su historia, estilo de combate y atributos visuales.`
+  );
+};
+
+const getAvatarTitle = (avatar, mode) => {
+  if (mode === "secondary") {
+    return normalizeDisplayText(
+      avatar.summonCardName ?? "Avatar Secundario"
+    ).toUpperCase();
+  }
+
+  const typeLabel = normalizeDisplayText(avatar.type).toUpperCase();
+  return avatar.name === "Thalindra" ? "GUARDIANA DEL VIVARIUM" : typeLabel;
+};
+
 function AvatarsScreen({ onGoHome }) {
   const [avatarMode, setAvatarMode] = useState("primary");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [touchStartY, setTouchStartY] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
 
   const avatarCollection =
     avatarMode === "secondary" ? SECONDARY_AVATARS : AVATAR_OPTIONS;
-  const selectedAvatar = avatarCollection[selectedIndex] ?? avatarCollection[0];
-  const selectedAttacks = selectedAvatar.attacks ?? [];
+
+  const filteredAvatars = avatarCollection.filter((avatar) =>
+    normalizeDisplayText(avatar.name)
+      .toLowerCase()
+      .includes(searchTerm.trim().toLowerCase())
+  );
+
+  const safeSelectedIndex = Math.min(
+    selectedIndex,
+    Math.max(filteredAvatars.length - 1, 0)
+  );
+  const selectedAvatar =
+    filteredAvatars[safeSelectedIndex] ??
+    avatarCollection[0] ??
+    AVATAR_OPTIONS[0];
+  const selectedAvatarName = normalizeDisplayText(selectedAvatar.name);
+  const selectedAvatarType = normalizeDisplayText(selectedAvatar.type);
+  const selectedAvatarWeakness = normalizeDisplayText(selectedAvatar.weakness);
+  const selectedAvatarCardImage =
+    getAvatarCardImage(selectedAvatar.name) ?? selectedAvatar.image;
+  const selectedAvatarSummary =
+    avatarMode === "secondary"
+      ? `Invocacion: ${normalizeDisplayText(selectedAvatar.summonCardName)}.`
+      : getAvatarLoreSummary(selectedAvatar.name);
 
   useEffect(() => {
     setSelectedIndex(0);
+    setSearchTerm("");
   }, [avatarMode]);
+
+  useEffect(() => {
+    if (safeSelectedIndex !== selectedIndex) {
+      setSelectedIndex(safeSelectedIndex);
+    }
+  }, [safeSelectedIndex, selectedIndex]);
 
   const changeAvatar = (direction) => {
     setSelectedIndex((prev) => {
-      const totalAvatars = avatarCollection.length;
+      const totalAvatars = filteredAvatars.length || 1;
       return (prev + direction + totalAvatars) % totalAvatars;
     });
   };
@@ -2049,8 +2248,8 @@ function AvatarsScreen({ onGoHome }) {
   }, []);
 
   const getWheelOffset = (index) => {
-    const totalAvatars = avatarCollection.length;
-    let offset = index - selectedIndex;
+    const totalAvatars = filteredAvatars.length || 1;
+    let offset = index - safeSelectedIndex;
 
     if (offset > totalAvatars / 2) offset -= totalAvatars;
     if (offset < -totalAvatars / 2) offset += totalAvatars;
@@ -2075,17 +2274,23 @@ function AvatarsScreen({ onGoHome }) {
     setTouchStartY(null);
   };
 
-  const avatarTypeLabel = avatarMode === "secondary" ? "Secundario" : "Avatar";
-  const avatarSummary =
-    avatarMode === "secondary"
-      ? `${normalizeDisplayText(selectedAvatar.type)} · ${selectedAvatar.hp} PV · Debilidad: ${normalizeDisplayText(selectedAvatar.weakness)} · Invocación: ${normalizeDisplayText(selectedAvatar.summonCardName)}`
-      : `${normalizeDisplayText(selectedAvatar.type)} · ${selectedAvatar.hp} PV · Debilidad: ${normalizeDisplayText(selectedAvatar.weakness)}`;
+  const handleAvatarSearch = (value) => {
+    setSearchTerm(value);
+    setSelectedIndex(0);
+  };
 
   return (
-    <div className="avatars-screen library-tone-summon">
-      <div className="library-topbar">
+    <div className={`avatars-screen avatars-prototype-screen ${avatarMode === "secondary" ? "avatars-secondary-theme" : "avatars-primary-theme"}`}>
+      <div className="library-topbar avatars-topbar">
         <h1>Avatares</h1>
-        <div className="library-topbar-right">
+        <div className="library-topbar-right avatars-topbar-right">
+          <input
+            type="text"
+            placeholder="Buscar avatar..."
+            value={searchTerm}
+            onChange={(event) => handleAvatarSearch(event.target.value)}
+            className="library-search avatars-search"
+          />
           <button
             className="back-home-btn icon-home-btn"
             onClick={onGoHome}
@@ -2097,147 +2302,121 @@ function AvatarsScreen({ onGoHome }) {
         </div>
       </div>
 
-      <div className="library-layout avatars-layout">
-        <div className="library-showcase">
-          <div className="library-detail avatars-detail">
-            <div className="library-detail-frame avatars-detail-frame">
-              <img
-                src={selectedAvatar.image}
-                alt={normalizeDisplayText(selectedAvatar.name)}
-                className="library-detail-image avatars-detail-image"
+      <div className="avatars-prototype-layout">
+        <section className="avatars-prototype-main">
+          <div className="avatars-main-stack">
+            <div className="avatars-stage-panel">
+              <div
+                className="avatars-stage-bg-fill"
+                style={{
+                  backgroundImage: `url(${selectedAvatar.image})`,
+                }}
+              />
+              <div
+                className="avatars-stage-bg"
+                style={{
+                  backgroundImage: `url(${selectedAvatar.image})`,
+                }}
               />
             </div>
 
-            <div className="library-detail-copy">
-              <div className="library-detail-heading">
-                <div className="library-detail-tags">
-                  <p className="library-category">{avatarTypeLabel}</p>
-                  <span className="library-rarity-pill">
-                    {normalizeDisplayText(selectedAvatar.type)}
-                  </span>
-                </div>
-                <h2>{normalizeDisplayText(selectedAvatar.name)}</h2>
-                <p className="library-summary avatars-summary">
-                  {normalizeDisplayText(selectedAvatar.type)} · {selectedAvatar.hp} PV ·
-                  Debilidad: {normalizeDisplayText(selectedAvatar.weakness)}
-                </p>
+            <div className="avatars-mode-switch avatars-mode-switch-overlay" role="tablist" aria-label="Tipo de avatar">
+              <button
+                type="button"
+                className={`avatars-mode-btn ${avatarMode === "primary" ? "active" : ""}`}
+                onClick={() => setAvatarMode("primary")}
+              >
+                Principales
+              </button>
+              <button
+                type="button"
+                className={`avatars-mode-btn ${avatarMode === "secondary" ? "active" : ""}`}
+                onClick={() => setAvatarMode("secondary")}
+              >
+                Secundarios
+              </button>
+            </div>
+
+            <div className="avatars-card-column">
+              <div className="avatars-card-rail">
+                <span className="avatars-card-rail-pill">{selectedAvatarType}</span>
+                <span className="avatars-card-rail-label">Avatar</span>
               </div>
 
-              <div className="library-meta-grid">
-                <div className="library-meta-card library-meta-card-wide library-effect-card">
-                  <span className="library-meta-label">Ataques</span>
-                  <div className="avatar-attack-list">
-                    {selectedAttacks.map((attack) => (
-                      <div
-                        key={`${selectedAvatar.name}-${attack.name}`}
-                        className="avatar-attack-item"
-                      >
-                        <strong>{normalizeDisplayText(attack.name)}</strong>
-                        <p>
-                          -{attack.damage} PD
-                          {attack.description
-                            ? ` · ${normalizeDisplayText(attack.description)}`
-                            : ""}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+              <div className="avatars-prototype-card-shell">
+                <img
+                  src={selectedAvatarCardImage}
+                  alt={selectedAvatarName}
+                  className="avatars-prototype-card-image"
+                />
+              </div>
+            </div>
+
+            <div className="avatars-prototype-detail-inner">
+              <div className="avatars-prototype-heading">
+                <div>
+                  <h2>{selectedAvatarName}</h2>
+                  <p className="avatars-prototype-subtitle">
+                    {getAvatarTitle(selectedAvatar, avatarMode)}
+                  </p>
                 </div>
+
+                <div className="avatars-prototype-hpbox">
+                  <span className="avatars-prototype-hpicon">❤</span>
+                  <strong>{selectedAvatar.hp}</strong>
+                  <span>Pv</span>
+                </div>
+              </div>
+
+              <div className="avatars-prototype-divider" />
+
+              <div className="avatars-prototype-copy">
+                <p>{selectedAvatarSummary}</p>
+              </div>
+
+              <div className="avatars-prototype-actions">
+                <button type="button">Anadir a Favoritos</button>
+                <button type="button">Vista 3D</button>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <aside className="library-wheel-panel avatars-wheel-panel">
-          <div className="avatars-mode-switch" role="tablist" aria-label="Tipo de avatar">
+        <aside className="avatars-prototype-sidebar">
+          <div className="avatars-selector-column">
             <button
+              className="avatars-selector-arrow"
+              onClick={() => changeAvatar(-1)}
+              onMouseDown={() => startRepeating(-1)}
+              onMouseUp={stopRepeating}
+              onMouseLeave={stopRepeating}
+              onTouchStart={() => startRepeating(-1)}
+              onTouchEnd={stopRepeating}
               type="button"
-              className={`avatars-mode-btn ${avatarMode === "primary" ? "active" : ""}`}
-              onClick={() => setAvatarMode("primary")}
+              aria-label="Avatar anterior"
             >
-              Principal
+              ˄
             </button>
+
             <button
+              className="avatars-selector-arrow"
+              onClick={() => changeAvatar(1)}
+              onMouseDown={() => startRepeating(1)}
+              onMouseUp={stopRepeating}
+              onMouseLeave={stopRepeating}
+              onTouchStart={() => startRepeating(1)}
+              onTouchEnd={stopRepeating}
               type="button"
-              className={`avatars-mode-btn ${avatarMode === "secondary" ? "active" : ""}`}
-              onClick={() => setAvatarMode("secondary")}
+              aria-label="Avatar siguiente"
             >
-              Secundario
+              ˅
             </button>
           </div>
-
-          <button
-            className="library-wheel-arrow"
-            onClick={() => changeAvatar(-1)}
-            onMouseDown={() => startRepeating(-1)}
-            onMouseUp={stopRepeating}
-            onMouseLeave={stopRepeating}
-            onTouchStart={() => startRepeating(-1)}
-            onTouchEnd={stopRepeating}
-            type="button"
-            aria-label="Avatar anterior"
-          >
-            ^
-          </button>
-
-          <div
-            className="library-wheel-shell"
-            onTouchStart={handleWheelTouchStart}
-            onTouchEnd={handleWheelTouchEnd}
-          >
-            <div className="library-wheel-focus" />
-
-            <div className="library-wheel">
-              {AVATAR_OPTIONS.map((avatar, index) => {
-                const offset = getWheelOffset(index);
-                const isActive = offset === 0;
-                const isVisible = Math.abs(offset) <= 1;
-
-                return (
-                  <button
-                    key={avatar.name}
-                    type="button"
-                    className={`library-wheel-item ${isActive ? "active" : ""}`}
-                    style={{
-                      transform: `translateY(${offset * 74}px) scale(${isActive ? 1 : 0.84})`,
-                      opacity: !isVisible ? 0 : isActive ? 1 : 0.58,
-                      pointerEvents: !isVisible ? "none" : "auto",
-                    }}
-                    onClick={() => setSelectedIndex(index)}
-                  >
-                    <span className="library-wheel-item-name">
-                      {normalizeDisplayText(avatar.name)}
-                    </span>
-                    <span className="library-wheel-item-meta">
-                      {normalizeDisplayText(avatar.type)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <button
-            className="library-wheel-arrow"
-            onClick={() => changeAvatar(1)}
-            onMouseDown={() => startRepeating(1)}
-            onMouseUp={stopRepeating}
-            onMouseLeave={stopRepeating}
-            onTouchStart={() => startRepeating(1)}
-            onTouchEnd={stopRepeating}
-            type="button"
-            aria-label="Avatar siguiente"
-          >
-            v
-          </button>
         </aside>
-        <h2>Próximamente</h2>
-        <p>Aquí aparecerá la galería de avatares.</p>
       </div>
     </div>
   );
 }
-
 export default function App() {
   const menuMusicRef = useRef(null);
   const battleMusicRef = useRef(null);
@@ -2281,7 +2460,7 @@ export default function App() {
   const [isRouletteActive, setIsRouletteActive] = useState(false);
   const [roulettePlayer1Index, setRoulettePlayer1Index] = useState(0);
   const [roulettePlayer2Index, setRoulettePlayer2Index] = useState(0);
-  // Eliminados los estados de índices finales, se usarán refs locales
+  // Eliminados los estados de Ã­ndices finales, se usarÃ¡n refs locales
   const finalIndicesRef = useRef([0, 1]);
 
   const [gameStarted, setGameStarted] = useState(false);
@@ -2667,11 +2846,11 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
     if (isPlayer1) {
       setPlayer1Hp(healedHp);
       triggerFlash(setPlayer1MainHpFlash, "heal");
-      setPlayer1History((prev) => [`Curación manual: +${healed} PV`, ...prev.slice(0, 5)]);
+      setPlayer1History((prev) => [`CuraciÃ³n manual: +${healed} PV`, ...prev.slice(0, 5)]);
     } else {
       setPlayer2Hp(healedHp);
       triggerFlash(setPlayer2MainHpFlash, "heal");
-      setPlayer2History((prev) => [`Curación manual: +${healed} PV`, ...prev.slice(0, 5)]);
+      setPlayer2History((prev) => [`CuraciÃ³n manual: +${healed} PV`, ...prev.slice(0, 5)]);
     }
   } else {
     const secondary = isPlayer1 ? player1Secondary : player2Secondary;
@@ -2689,7 +2868,7 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
       }));
       triggerFlash(setPlayer1SecondaryHpFlash, "heal");
       setPlayer1History((prev) => [
-        `Curación manual a ${secondary.name}: +${healed} PV`,
+        `CuraciÃ³n manual a ${secondary.name}: +${healed} PV`,
         ...prev.slice(0, 5),
       ]);
     } else {
@@ -2699,7 +2878,7 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
       }));
       triggerFlash(setPlayer2SecondaryHpFlash, "heal");
       setPlayer2History((prev) => [
-        `Curación manual a ${secondary.name}: +${healed} PV`,
+        `CuraciÃ³n manual a ${secondary.name}: +${healed} PV`,
         ...prev.slice(0, 5),
       ]);
     }
@@ -2980,7 +3159,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
   if (targetSlot === "main" && enemyCombatState.damageReduction.turnsLeft > 0) {
     totalDamage = Math.max(0, totalDamage - enemyCombatState.damageReduction.amount);
-    notes.push(`Daño reducido en ${enemyCombatState.damageReduction.amount}`);
+    notes.push(`DaÃ±o reducido en ${enemyCombatState.damageReduction.amount}`);
   }
 
   if (targetSlot === "main") {
@@ -3177,7 +3356,7 @@ const stopRouletteAndApply = () => {
 
   setIsRouletteActive(false);
 
-  // Usar los índices almacenados en el ref local
+  // Usar los Ã­ndices almacenados en el ref local
   const [finalIndex1, finalIndex2] = finalIndicesRef.current;
   const avatar1 = AVATAR_OPTIONS[finalIndex1];
   const avatar2 = AVATAR_OPTIONS[finalIndex2];
@@ -3263,7 +3442,7 @@ const handlePassTurn = (playerId) => {
         showExpiredSecondaryTurn("player1");
         setPlayer1ActiveSlot("main");
         setPlayer1History((prev) => [
-          `${player1Secondary.name} salió de juego`,
+          `${player1Secondary.name} saliÃ³ de juego`,
           ...prev.slice(0, 5),
         ]);
       } else {
@@ -3283,7 +3462,7 @@ const handlePassTurn = (playerId) => {
         showExpiredSecondaryTurn("player2");
         setPlayer2ActiveSlot("main");
         setPlayer2History((prev) => [
-          `${player2Secondary.name} salió de juego`,
+          `${player2Secondary.name} saliÃ³ de juego`,
           ...prev.slice(0, 5),
         ]);
       } else {
@@ -3908,11 +4087,11 @@ const formattedTime =
         handleToggleSummonCardPreview();
       }}
       type="button"
-      aria-label="Mostrar carta de invocación"
+      aria-label="Mostrar carta de invocaciÃ³n"
     >
       <img
         src="/ui/summon-card-icon.png"
-        alt="Carta de invocación"
+        alt="Carta de invocaciÃ³n"
         className="secondary-card-toggle-icon"
       />
     </button>
@@ -3995,7 +4174,7 @@ const formattedTime =
         {showRestartConfirm && (
           <div className="restart-confirm-overlay">
             <div className="restart-confirm-modal">
-              <h3>{"¿Quieres Reiniciar la partida?"}</h3>
+              <h3>{"Â¿Quieres Reiniciar la partida?"}</h3>
 
               <div className="restart-confirm-actions">
                 <button
@@ -4099,7 +4278,7 @@ const formattedTime =
                 aria-label="Seleccionar avatares aleatorios"
                 disabled={isRouletteActive}
               >
-                🎲
+                ðŸŽ²
               </button>
             </div>
           )}
@@ -4160,3 +4339,4 @@ const formattedTime =
     </div>
   );
 }
+
