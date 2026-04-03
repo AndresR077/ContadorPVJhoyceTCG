@@ -787,19 +787,22 @@ const LIBRARY_PREFIX_META = {
 
 const LIBRARY_CARD_OVERRIDES = {
   "eco-del-turno-perdido": {
-    effect: "El contrincante no roba carta en su proximo turno.",
+    effect: "El contrincante no roba carta en su próximo turno.",
     summary: "Controla el ritmo del rival y castiga el siguiente ciclo de robo.",
   },
   "elixir-de-lucidez-forzada": {
     effect: "Lanza un efecto aleatorio que puede beneficiar o perjudicar.",
-    summary: "Una carta impredecible que puede inclinar la partida en cualquier direccion.",
+    summary: "Una carta impredecible que puede inclinar la partida en cualquier dirección.",
   },
   "espejo-decisivo": {
     effect: "Reduce en 30 PD el siguiente ataque recibido.",
-    summary: "Mitiga el proximo golpe y compra tiempo para reorganizar el turno.",
+    summary: "Mitiga el próximo golpe y compra tiempo para reorganizar el turno.",
   },
   "desicion-instantanea": {
-    name: "Decision Instantanea",
+    name: "Decisión Instantánea",
+  },
+  "fenix-multiversal": {
+    name: "Fénix Multiversal",
   },
   "abismo-desesperante": {
     chanceStars: 0,
@@ -1070,7 +1073,7 @@ const LIBRARY_CARDS = LIBRARY_FILE_NAMES.map((fileName, index) => {
     energyRarity: overrides.energyRarity ?? null,
     frameAccent: overrides.frameAccent ?? null,
     panelAccentEnd: overrides.panelAccentEnd ?? null,
-    effect: overrides.effect ?? "Texto de efecto pendiente de catalogar en la libreria.",
+    effect: overrides.effect ?? "Texto de efecto pendiente de catalogar en la librería.",
     summary: overrides.summary ?? meta.summary,
     image: toLibraryImagePath(fileName),
   };
@@ -2148,14 +2151,14 @@ const getAvatarCardImage = (avatarName) => {
 
 const AVATAR_LORE_SUMMARIES = {
   thalindra:
-    "Thalindra custodia el Vivarium, uno de los santuarios mas sagrados del universo mitico. Su presencia mantiene el bosque vivo, feroz y en equilibrio con la Energia Multiversal.",
+    "Thalindra custodia el Vivarium, uno de los santuarios más sagrados del universo mítico. Su presencia mantiene el bosque vivo, feroz y en equilibrio con la Energía Multiversal.",
 };
 
 const getAvatarLoreSummary = (avatarName) => {
   const key = normalizeAvatarAssetName(avatarName);
   return (
     AVATAR_LORE_SUMMARIES[key] ??
-    `${normalizeDisplayText(avatarName)} es uno de los avatares clave del multiverso JHOYCE. Esta vista sera la ficha de presentacion definitiva para su historia, estilo de combate y atributos visuales.`
+    `${normalizeDisplayText(avatarName)} es uno de los avatares clave del multiverso JHOYCE. Esta vista será la ficha de presentación definitiva para su historia, estilo de combate y atributos visuales.`
   );
 };
 
@@ -2300,7 +2303,7 @@ function AvatarsScreen({ onGoHome }) {
     : selectedAvatarCardImage;
   const selectedAvatarSummary =
     avatarMode === "secondary"
-      ? `Invocacion: ${normalizeDisplayText(selectedAvatar.summonCardName)}.`
+      ? `Invocación: ${normalizeDisplayText(selectedAvatar.summonCardName)}.`
       : getAvatarLoreSummary(selectedAvatar.name);
   const avatarThemeStyle =
     avatarMode === "primary"
