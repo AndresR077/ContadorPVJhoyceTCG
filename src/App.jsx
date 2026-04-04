@@ -817,7 +817,7 @@ const LIBRARY_CARD_OVERRIDES = {
     frameAccent: "#d4b45d",
   },
   "cazadora-del-inframundo": {
-    chanceStars: 2,
+    chanceStars: 3,
     frameAccent: "#ff5247",
   },
   "guardian-de-los-6-pilares": {
@@ -825,7 +825,7 @@ const LIBRARY_CARD_OVERRIDES = {
     frameAccent: "#5fce7f",
   },
   "invocadora-ultra-celestial": {
-    chanceStars: 2,
+    chanceStars: 3,
     frameAccent: "#a86dff",
   },
   "juicio-de-los-diez-netjeru": {
@@ -955,16 +955,6 @@ const slugifyLibraryName = (value) =>
     .replace(/^-+|-+$/g, "");
 
 const LIBRARY_ASSET_FILES = [
-  "AZ - Abismo Desesperante.png",
-  "AZ - Alquimista Tacaña.png",
-  "AZ - Cardinales del Mago.png",
-  "AZ - Cazadora del Inframundo.png",
-  "AZ - Guardián de los 6 Pilares.png",
-  "AZ - Invocadora Ultra Celestial.png",
-  "AZ - Juicio de los Diez Netjeru.png",
-  "AZ - Ley del Vidente Ciego.png",
-  "AZ - Paradoja Atemporal.png",
-  "AZ - Valentía Felina.png",
   "C - Eco del Turno Perdido.png",
   "C - Elixir de Lucidez Forzada.png",
   "C - Espejo Decisivo.png",
@@ -1023,6 +1013,16 @@ const LIBRARY_ASSET_FILES = [
   "R - Relicario Divino.png",
   "R - Reloj del Juicio.png",
   "R Fisura Multiversal.png",
+  "AZ - Abismo Desesperante.png",
+  "AZ - Alquimista Tacaña.png",
+  "AZ - Cardinales del Mago.png",
+  "AZ - Cazadora del Inframundo.png",
+  "AZ - Guardián de los 6 Pilares.png",
+  "AZ - Invocadora Ultra Celestial.png",
+  "AZ - Juicio de los Diez Netjeru.png",
+  "AZ - Ley del Vidente Ciego.png",
+  "AZ - Paradoja Atemporal.png",
+  "AZ - Valentía Felina.png",
 ];
 
 const normalizeLibraryAssetName = (value) => {
@@ -1055,6 +1055,56 @@ const toLibraryImagePath = (fileName) => {
   return `/library/${encodeURIComponent(matchedFile ?? fileName)}`;
 };
 
+const LIBRARY_OBJECT_ORDER = {
+  common: 0,
+  epic: 1,
+  rare: 2,
+  legendary: 3,
+};
+
+const LIBRARY_ENERGY_ORDER = {
+  "Común": 0,
+  "Épica": 1,
+  Rara: 2,
+  Legendaria: 3,
+};
+
+const LIBRARY_CHANCE_ORDER = {
+  "Común": 0,
+  Rara: 1,
+  "Épica": 2,
+  Legendaria: 3,
+};
+
+const getLibraryCardSortKey = (card) => {
+  if (["common", "epic", "rare", "legendary"].includes(card.tone)) {
+    return [0, LIBRARY_OBJECT_ORDER[card.tone] ?? 99];
+  }
+
+  if (card.tone === "energy") {
+    return [1, LIBRARY_ENERGY_ORDER[card.energyRarity ?? card.rarity] ?? 99];
+  }
+
+  if (card.tone === "summon") {
+    return [2, 0];
+  }
+
+  if (card.tone === "chance") {
+    const chanceRarity =
+      card.chanceStars >= 3
+        ? "Legendaria"
+        : card.chanceStars === 2
+        ? "Épica"
+        : card.chanceStars === 1
+        ? "Rara"
+        : "Común";
+
+    return [3, LIBRARY_CHANCE_ORDER[chanceRarity] ?? 99];
+  }
+
+  return [99, 99];
+};
+
 const LIBRARY_CARDS = LIBRARY_FILE_NAMES.map((fileName, index) => {
   const { prefix, rawName } = parseLibraryCardFileName(fileName);
   const meta = LIBRARY_PREFIX_META[prefix] ?? LIBRARY_PREFIX_META.C;
@@ -1077,6 +1127,14 @@ const LIBRARY_CARDS = LIBRARY_FILE_NAMES.map((fileName, index) => {
     summary: overrides.summary ?? meta.summary,
     image: toLibraryImagePath(fileName),
   };
+}).sort((a, b) => {
+  const [groupA, rarityA] = getLibraryCardSortKey(a);
+  const [groupB, rarityB] = getLibraryCardSortKey(b);
+
+  if (groupA !== groupB) return groupA - groupB;
+  if (rarityA !== rarityB) return rarityA - rarityB;
+
+  return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
 });
 
 const getChanceRarityLabel = (chanceStars = 0) => {
@@ -1887,6 +1945,17 @@ function LibraryScreen({ onGoHome }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [touchStartY, setTouchStartY] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showRarityGuideModal, setShowRarityGuideModal] = useState(false);
+  const [guideSelections, setGuideSelections] = useState({
+    object: "Común",
+    energy: "Común",
+    chance: "Común",
+    summon: "Invocación",
+  });
+  const [activeGuideSelection, setActiveGuideSelection] = useState({
+    section: null,
+    rarity: null,
+  });
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
 
@@ -1977,6 +2046,71 @@ function LibraryScreen({ onGoHome }) {
     setTouchStartY(null);
   };
 
+  const getGuidePreviewCard = (section, rarity) => {
+    if (section === "object") {
+      const toneMap = {
+        "Común": "common",
+        "Épica": "epic",
+        Rara: "rare",
+        Legendaria: "legendary",
+      };
+
+      return LIBRARY_CARDS.find((card) => card.tone === toneMap[rarity]) ?? null;
+    }
+
+    if (section === "energy") {
+      return (
+        LIBRARY_CARDS.find(
+          (card) =>
+            card.tone === "energy" &&
+            getLibraryCardRarityLabel(card) === rarity
+        ) ?? null
+      );
+    }
+
+    if (section === "chance") {
+      return (
+        LIBRARY_CARDS.find(
+          (card) =>
+            card.tone === "chance" &&
+            getLibraryCardRarityLabel(card) === rarity
+        ) ?? null
+      );
+    }
+
+    if (section === "summon") {
+      return LIBRARY_CARDS.find((card) => card.tone === "summon") ?? null;
+    }
+
+    return null;
+  };
+
+  const handleGuideRarityClick = (section, rarity) => {
+    const targetCard = getGuidePreviewCard(section, rarity);
+    if (!targetCard) return;
+
+    if (
+      activeGuideSelection.section === section &&
+      activeGuideSelection.rarity === rarity
+    ) {
+      const targetIndex = LIBRARY_CARDS.findIndex((card) => card.id === targetCard.id);
+      if (targetIndex !== -1) {
+        setSelectedIndex(targetIndex);
+      }
+      setShowRarityGuideModal(false);
+      return;
+    }
+
+    setGuideSelections((prev) => ({
+      ...prev,
+      [section]: rarity,
+    }));
+    setActiveGuideSelection({
+      section,
+      rarity,
+    });
+  };
+
   return (
     <div className={`library-screen library-tone-${selectedCard.tone}`}>
       <div className="library-topbar">
@@ -2017,7 +2151,13 @@ function LibraryScreen({ onGoHome }) {
                   {selectedCard.tone !== "summon" && (
                     <p className="library-category">{selectedCard.category}</p>
                   )}
-                  <span className="library-rarity-pill">{selectedCardRarityLabel}</span>
+                  <button
+                    type="button"
+                    className="library-rarity-pill"
+                    onClick={() => setShowRarityGuideModal(true)}
+                  >
+                    {selectedCardRarityLabel}
+                  </button>
                 </div>
                 <h2>{selectedCard.name}</h2>
                 <p className="library-summary">{selectedCard.summary}</p>
@@ -2099,6 +2239,201 @@ function LibraryScreen({ onGoHome }) {
           </button>
         </aside>
       </div>
+
+      {showRarityGuideModal && (
+        <div
+          className="library-guide-overlay"
+          onClick={() => setShowRarityGuideModal(false)}
+        >
+          <div
+            className="library-guide-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="library-guide-close"
+              onClick={() => setShowRarityGuideModal(false)}
+              aria-label="Cerrar"
+              type="button"
+            >
+              {"\u00D7"}
+            </button>
+
+            <h3>Guía de Categorías y Rarezas</h3>
+
+            <div className="library-guide-sections">
+              <section className="library-guide-section">
+                <h4>Cartas de Objeto</h4>
+                <div className="library-guide-preview">
+                  {getGuidePreviewCard("object", guideSelections.object) && (
+                    <img
+                      src={getGuidePreviewCard("object", guideSelections.object).image}
+                      alt={getGuidePreviewCard("object", guideSelections.object).name}
+                      className={`library-guide-preview-image ${
+                        activeGuideSelection.section === "object" &&
+                        activeGuideSelection.rarity === guideSelections.object
+                          ? "is-active"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </div>
+                <div className="library-guide-text-list">
+                  <button
+                    type="button"
+                    className={`library-guide-text object-common ${
+                      activeGuideSelection.section === "object" &&
+                      activeGuideSelection.rarity === "Común"
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleGuideRarityClick("object", "Común")}
+                  >
+                    Común
+                  </button>
+                  <button
+                    type="button"
+                    className={`library-guide-text object-epic ${
+                      activeGuideSelection.section === "object" &&
+                      activeGuideSelection.rarity === "Épica"
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleGuideRarityClick("object", "Épica")}
+                  >
+                    Épica
+                  </button>
+                  <button
+                    type="button"
+                    className={`library-guide-text object-rare ${
+                      activeGuideSelection.section === "object" &&
+                      activeGuideSelection.rarity === "Rara"
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleGuideRarityClick("object", "Rara")}
+                  >
+                    Rara
+                  </button>
+                  <button
+                    type="button"
+                    className={`library-guide-text object-legendary ${
+                      activeGuideSelection.section === "object" &&
+                      activeGuideSelection.rarity === "Legendaria"
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleGuideRarityClick("object", "Legendaria")}
+                  >
+                    Legendaria
+                  </button>
+                </div>
+              </section>
+
+              <section className="library-guide-section">
+                <h4>Cartas de Energía</h4>
+                <div className="library-guide-preview">
+                  {getGuidePreviewCard("energy", guideSelections.energy) && (
+                    <img
+                      src={getGuidePreviewCard("energy", guideSelections.energy).image}
+                      alt={getGuidePreviewCard("energy", guideSelections.energy).name}
+                      className={`library-guide-preview-image ${
+                        activeGuideSelection.section === "energy" &&
+                        activeGuideSelection.rarity === guideSelections.energy
+                          ? "is-active"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </div>
+                <div className="library-guide-text-list">
+                  {["Común", "Épica", "Rara", "Legendaria"].map((rarity) => (
+                    <button
+                      key={rarity}
+                      type="button"
+                      className={`library-guide-text energy ${
+                        activeGuideSelection.section === "energy" &&
+                        activeGuideSelection.rarity === rarity
+                          ? "active"
+                          : ""
+                      }`}
+                      onClick={() => handleGuideRarityClick("energy", rarity)}
+                    >
+                      {rarity}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="library-guide-section">
+                <h4>Cartas de Azar</h4>
+                <div className="library-guide-preview">
+                  {getGuidePreviewCard("chance", guideSelections.chance) && (
+                    <img
+                      src={getGuidePreviewCard("chance", guideSelections.chance).image}
+                      alt={getGuidePreviewCard("chance", guideSelections.chance).name}
+                      className={`library-guide-preview-image ${
+                        activeGuideSelection.section === "chance" &&
+                        activeGuideSelection.rarity === guideSelections.chance
+                          ? "is-active"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </div>
+                <div className="library-guide-text-list">
+                  {["Común", "Rara", "Épica", "Legendaria"].map((rarity) => (
+                    <button
+                      key={rarity}
+                      type="button"
+                      className={`library-guide-text chance ${
+                        activeGuideSelection.section === "chance" &&
+                        activeGuideSelection.rarity === rarity
+                          ? "active"
+                          : ""
+                      }`}
+                      onClick={() => handleGuideRarityClick("chance", rarity)}
+                    >
+                      {rarity}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="library-guide-section">
+                <h4>Cartas de Invocación</h4>
+                <div className="library-guide-preview">
+                  {getGuidePreviewCard("summon", guideSelections.summon) && (
+                    <img
+                      src={getGuidePreviewCard("summon", guideSelections.summon).image}
+                      alt={getGuidePreviewCard("summon", guideSelections.summon).name}
+                      className={`library-guide-preview-image ${
+                        activeGuideSelection.section === "summon" &&
+                        activeGuideSelection.rarity === guideSelections.summon
+                          ? "is-active"
+                          : ""
+                      }`}
+                    />
+                  )}
+                </div>
+                <div className="library-guide-text-list">
+                  <button
+                    type="button"
+                    className={`library-guide-text summon ${
+                      activeGuideSelection.section === "summon" &&
+                      activeGuideSelection.rarity === "Invocación"
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleGuideRarityClick("summon", "Invocación")}
+                  >
+                    Invocación
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
