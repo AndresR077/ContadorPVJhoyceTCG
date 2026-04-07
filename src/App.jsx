@@ -1299,6 +1299,7 @@ const createCombatState = () => ({
   currentTurnAttack: null,
   previousTurnEmPlaced: false,
   currentTurnEmPlaced: false,
+  attackBlockedTurns: 0,
   consecutiveAttackName: null,
   consecutiveCount: 0,
   nextAttackBonus: {
@@ -1447,6 +1448,11 @@ const canPlaceEm =
   !gameOver &&
   isTurnActive &&
   (ownCombatState?.emPlacementBlockedTurns || 0) <= 0;
+const isAttackBlocked =
+  gameStarted &&
+  !gameOver &&
+  isTurnActive &&
+  (ownCombatState?.attackBlockedTurns || 0) > 0;
 
 const renderEnergyControl = () => (
   <div
@@ -1963,7 +1969,8 @@ return (
             ? getAdjustedAttackDamage(activeSlot, activeAvatar.name, attack)
             : attack.damage;
           const hasEnoughEm = activeEm >= attackCost;
-          const attackIsReady = gameStarted && !gameOver && isTurnActive && hasEnoughEm;
+          const attackIsReady =
+            gameStarted && !gameOver && isTurnActive && !isAttackBlocked && hasEnoughEm;
           const attackHasPulse = attackIsReady && attackCost === maxAttackCost && maxAttackCost > 0;
 
           return (
@@ -4297,6 +4304,23 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     }));
   }
 
+  if (
+    attackerSlot === "secondary" &&
+    attackerSecondary?.firstAttackBonusPending > 0 &&
+    (attackerSecondary.attackCount || 0) === 0
+  ) {
+    totalDamage += attackerSecondary.firstAttackBonusPending;
+    notes.push(`Primer ataque tras invocación: +${attackerSecondary.firstAttackBonusPending} PD`);
+    setOwnSecondary((prev) =>
+      prev
+        ? {
+            ...prev,
+            firstAttackBonusPending: 0,
+          }
+        : prev
+    );
+  }
+
   if (ownCombatState.nextAttackReduction.amount > 0) {
     totalDamage = Math.max(0, totalDamage - ownCombatState.nextAttackReduction.amount);
     notes.push(`Ataque reducido en ${ownCombatState.nextAttackReduction.amount} PD`);
@@ -4334,9 +4358,23 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       notes.push("El rival no podrá ligar EM en su próximo turno");
     }
   } else if (enemySecondary) {
+    if (enemySecondary.halveNextDamage) {
+      totalDamage = Math.ceil(totalDamage / 2);
+      notes.push("Primer daño recibido reducido a la mitad");
+      setEnemySecondary((prev) =>
+        prev
+          ? {
+              ...prev,
+              halveNextDamage: false,
+            }
+          : prev
+      );
+    }
+
     const newSecondaryHp = Math.max(0, enemySecondary.currentHp - totalDamage);
 
     if (newSecondaryHp <= 0) {
+      applySecondaryExitEffects(isPlayer1 ? "player2" : "player1", enemySecondary, "defeated");
       setEnemySecondary(null);
       setEnemySecondaryTurnDisplay(null);
       setEnemyActiveSlot("main");
@@ -4396,6 +4434,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       const newHp = Math.max(0, attackerSecondary.currentHp - selfDamage);
 
       if (newHp <= 0) {
+        applySecondaryExitEffects(attackerId, attackerSecondary, "defeated");
         setOwnSecondary(null);
         setOwnSecondaryTurnDisplay(null);
         setOwnActiveSlot("main");
@@ -4473,6 +4512,123 @@ const handleSetActiveSlot = (playerId, slot) => {
   }
 };
 
+const applySecondaryExitEffects = (ownerId, secondary, reason = "removed") => {
+  if (!secondary) return;
+
+  const setOwnHistory = ownerId === "player1" ? setPlayer1History : setPlayer2History;
+  const setEnemyHistory = ownerId === "player1" ? setPlayer2History : setPlayer1History;
+  const setEnemyCombatState = ownerId === "player1" ? setPlayer2CombatState : setPlayer1CombatState;
+
+  if (secondary.id === "medusa") {
+    setEnemyCombatState((prev) => ({
+      ...prev,
+      attackBlockedTurns: Math.max(prev.attackBlockedTurns || 0, 1),
+    }));
+    setOwnHistory((prev) => [
+      `Salida de ${secondary.name}: el rival queda paralizado 1 turno`,
+      ...prev.slice(0, 5),
+    ]);
+    setEnemyHistory((prev) => [
+      `${secondary.name} salió de juego: no puedes atacar durante 1 turno`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "prismara" && reason !== "expired") {
+    setOwnHistory((prev) => [
+      `${secondary.name} salió antes de tiempo: roba 2 cartas`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "karessa" && reason === "expired" && (secondary.currentEm || 0) > 0) {
+    setOwnHistory((prev) => [
+      `${secondary.name} abandona la partida: 1 EM ligada regresa a tu mano`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "necrondra") {
+    setOwnHistory((prev) => [
+      `${secondary.name} abandona la partida: roba 1 carta`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+};
+
+const applySecondarySummonEffects = (ownerId, secondary) => {
+  if (!secondary) return;
+
+  const isPlayer1 = ownerId === "player1";
+  const setOwnHistory = isPlayer1 ? setPlayer1History : setPlayer2History;
+  const setEnemyHistory = isPlayer1 ? setPlayer2History : setPlayer1History;
+  const setEnemyMainHp = isPlayer1 ? setPlayer2Hp : setPlayer1Hp;
+  const enemyMainHp = isPlayer1 ? player2Hp : player1Hp;
+  const setEnemyMainFlash = isPlayer1 ? setPlayer2MainHpFlash : setPlayer1MainHpFlash;
+  const setEnemyCombatState = isPlayer1 ? setPlayer2CombatState : setPlayer1CombatState;
+
+  if (secondary.id === "prismara") {
+    const summonDamage = 40;
+    setEnemyMainHp((prev) => Math.max(0, prev - summonDamage));
+    triggerFlash(setEnemyMainFlash, "damage");
+    setOwnHistory((prev) => [
+      `${secondary.name} entra en juego: inflige ${summonDamage} PD al avatar principal rival`,
+      ...prev.slice(0, 5),
+    ]);
+    setEnemyHistory((prev) => [
+      `${secondary.name} entra en juego: recibes ${summonDamage} PD`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "medusa") {
+    setEnemyCombatState((prev) => ({
+      ...prev,
+      attackBlockedTurns: Math.max(prev.attackBlockedTurns || 0, 1),
+    }));
+    setOwnHistory((prev) => [
+      `${secondary.name} entra en juego: el rival queda paralizado 1 turno`,
+      ...prev.slice(0, 5),
+    ]);
+    setEnemyHistory((prev) => [
+      `${secondary.name} entra en juego: no puedes atacar durante 1 turno`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "karessa") {
+    setOwnHistory((prev) => [
+      `${secondary.name} entra en juego: puedes ligar 1 EM adicional desde tu mano`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "hella") {
+    setEnemyHistory((prev) => [
+      `${secondary.name} entra en juego: descarta 1 carta al azar de tu mano`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "necrondra") {
+    setOwnHistory((prev) => [
+      `${secondary.name} entra en juego: mira la mano rival y descarta 1 carta`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+
+  if (secondary.id === "valdrea") {
+    setOwnHistory((prev) => [
+      `${secondary.name} entra en juego: las cartas en juego se anulan hasta el próximo turno`,
+      ...prev.slice(0, 5),
+    ]);
+    setEnemyHistory((prev) => [
+      `${secondary.name} entra en juego: las cartas en juego se anulan hasta el próximo turno`,
+      ...prev.slice(0, 5),
+    ]);
+  }
+};
+
 const handleConfirmSecondarySummon = () => {
   if (!selectedSecondaryId || !secondaryModalPlayer) return;
 
@@ -4489,6 +4645,9 @@ const handleConfirmSecondarySummon = () => {
     attackCount: 0,
     isActive: false,
     hasEntered: true,
+    halveNextDamage: avatar.id === "medusa",
+    firstAttackBonusPending: avatar.id === "karessa" ? 20 : 0,
+    extendedTurnsApplied: false,
   };
 
   if (secondaryModalPlayer === "player1") {
@@ -4503,6 +4662,7 @@ const handleConfirmSecondarySummon = () => {
       `${avatar.name} invocada con ${summonedAvatar.currentHp} PV`,
       ...prev.slice(0, 5),
     ]);
+    applySecondarySummonEffects("player1", summonedAvatar);
   } else {
     if (secondaryTurnTimeoutRef.current.player2) {
       clearTimeout(secondaryTurnTimeoutRef.current.player2);
@@ -4515,6 +4675,7 @@ const handleConfirmSecondarySummon = () => {
       `${avatar.name} invocada con ${summonedAvatar.currentHp} PV`,
       ...prev.slice(0, 5),
     ]);
+    applySecondarySummonEffects("player2", summonedAvatar);
   }
 
   handleCloseSecondaryModal();
@@ -4645,7 +4806,7 @@ const navigateWithTransition = (nextScreen) => {
   }, 250);
 };
 
-const handlePassTurn = (playerId) => {
+  const handlePassTurn = (playerId) => {
   if (!gameStarted || gameOver) return;
 
   const closeOwnTurnState = (ownerId) => {
@@ -4657,6 +4818,7 @@ const handlePassTurn = (playerId) => {
       currentTurnAttack: null,
       previousTurnEmPlaced: prev.currentTurnEmPlaced,
       currentTurnEmPlaced: false,
+      attackBlockedTurns: Math.max(0, (prev.attackBlockedTurns || 0) - 1),
       emPlacementBlockedTurns: Math.max(0, (prev.emPlacementBlockedTurns || 0) - 1),
     }));
   };
@@ -4697,6 +4859,19 @@ const handlePassTurn = (playerId) => {
       const nextTurns = player1Secondary.turnsRemaining - 1;
 
       if (nextTurns <= 0) {
+        if (player1Secondary.id === "hella" && !player1Secondary.extendedTurnsApplied) {
+          setPlayer1Secondary((prev) => ({
+            ...prev,
+            turnsRemaining: 2,
+            extendedTurnsApplied: true,
+          }));
+          setPlayer1SecondaryTurnDisplay(2);
+          setPlayer1History((prev) => [
+            `${player1Secondary.name} permanece 2 turnos más`,
+            ...prev.slice(0, 5),
+          ]);
+          return;
+        }
         if (player1Secondary.id === "medusa") {
           setPlayer2CombatState((prev) => ({
             ...prev,
@@ -4706,6 +4881,7 @@ const handlePassTurn = (playerId) => {
             },
           }));
         }
+        applySecondaryExitEffects("player1", player1Secondary, "expired");
         setPlayer1Secondary(null);
         showExpiredSecondaryTurn("player1");
         setPlayer1ActiveSlot("main");
@@ -4726,6 +4902,19 @@ const handlePassTurn = (playerId) => {
       const nextTurns = player2Secondary.turnsRemaining - 1;
 
       if (nextTurns <= 0) {
+        if (player2Secondary.id === "hella" && !player2Secondary.extendedTurnsApplied) {
+          setPlayer2Secondary((prev) => ({
+            ...prev,
+            turnsRemaining: 2,
+            extendedTurnsApplied: true,
+          }));
+          setPlayer2SecondaryTurnDisplay(2);
+          setPlayer2History((prev) => [
+            `${player2Secondary.name} permanece 2 turnos más`,
+            ...prev.slice(0, 5),
+          ]);
+          return;
+        }
         if (player2Secondary.id === "medusa") {
           setPlayer1CombatState((prev) => ({
             ...prev,
@@ -4735,6 +4924,7 @@ const handlePassTurn = (playerId) => {
             },
           }));
         }
+        applySecondaryExitEffects("player2", player2Secondary, "expired");
         setPlayer2Secondary(null);
         showExpiredSecondaryTurn("player2");
         setPlayer2ActiveSlot("main");
@@ -4989,6 +5179,7 @@ const handleApplyAdjustHp = () => {
 
         if (damageDone > 0) {
           if (newHp <= 0) {
+            applySecondaryExitEffects("player1", player1Secondary, "defeated");
             setPlayer1Secondary(null);
             setPlayer1SecondaryTurnDisplay(null);
             setPlayer1ActiveSlot("main");
@@ -5054,6 +5245,7 @@ const handleApplyAdjustHp = () => {
 
         if (damageDone > 0) {
           if (newHp <= 0) {
+            applySecondaryExitEffects("player2", player2Secondary, "defeated");
             setPlayer2Secondary(null);
             setPlayer2SecondaryTurnDisplay(null);
             setPlayer2ActiveSlot("main");
