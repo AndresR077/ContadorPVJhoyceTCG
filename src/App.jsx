@@ -42,7 +42,7 @@ const AVATAR_OPTIONS = [
         name: "Aliento de Dragón",
         damage: 180,
         description:
-          "Si se activa después de que se haya usado el ataque secundario el turno anterior, hará +20 PD extra.",
+          "Si este avatar usó su ataque secundario el turno anterior, este ataque inflige +20 PD. Además, tu oponente deberá descartar 1 carta al azar de su mano.",
         effect: {
           type: "bonus_if_previous_turn_attack_was",
           attackName: "Flecha Flamígera",
@@ -53,7 +53,7 @@ const AVATAR_OPTIONS = [
         name: "Flecha Flamígera",
         damage: 90,
         description:
-          "Durante los 2 turnos siguientes, los ataques que reciba el avatar se reducen en 10 PD.",
+          "Cada ataque que reciba este avatar (sea de un avatar principal o de uno secundario), durante 2 turnos, se minimizará en -10 PD.",
         effect: {
           type: "grant_self_damage_reduction",
           amount: 10,
@@ -75,13 +75,15 @@ const AVATAR_OPTIONS = [
       {
         name: "Supernova de Antimateria",
         damage: 210,
-        description: "",
+        description:
+          "En este turno, ninguna carta de Objeto o Azar afectarán a este avatar principal.",
         effect: null,
       },
       {
         name: "Fractura de la Realidad",
         damage: 90,
-        description: "",
+        description:
+          "Si este ataque se realiza cuando tengas al menos 1 objeto activo, deberás escoger entre: recuperar 2 EM de tu pila de descarte, o reducir 2 EM ligadas al avatar principal de tu rival.",
         effect: null,
       },
     ],
@@ -99,14 +101,22 @@ const AVATAR_OPTIONS = [
       {
         name: "Ritual de Quetzalcóatl",
         damage: 160,
-        description: "",
-        effect: null,
+        description:
+          "Si este ataque derrota a un avatar secundario, recupera +50 PV. Además, coloca 1 EM adicional a este avatar en este turno.",
+        effect: {
+          type: "if_attack_defeats_secondary_self_heal",
+          heal: 50,
+        },
       },
       {
         name: "Embestida Jaguar",
         damage: 80,
-        description: "",
-        effect: null,
+        description:
+          "Si tu oponente no tiene ninguna EM ligada a su avatar principal en este turno, este ataque inflige +20 PD.",
+        effect: {
+          type: "if_enemy_has_no_em_bonus",
+          bonusDamage: 20,
+        },
       },
     ],
   },
@@ -123,8 +133,12 @@ const AVATAR_OPTIONS = [
       {
         name: "Hechizo de Sangre y Hielo",
         damage: 170,
-        description: "",
-        effect: null,
+        description:
+          "Si el avatar principal del oponente tiene más EM que tu avatar principal, este ataque inflige +20 PD y no podrá ligar EM en su próximo turno.",
+        effect: {
+          type: "enemy_has_more_em_than_self_bonus",
+          bonusDamage: 20,
+        },
       },
       {
         name: "Maldición y Sacrificio",
@@ -151,7 +165,7 @@ const AVATAR_OPTIONS = [
         name: "Maldición de Sol Egipcio",
         damage: 180,
         description:
-          "Si el avatar enemigo tiene 600 PV o menos, este ataque hace +30 PD extra.",
+          "El oponente no puede usar cartas de azar o cartas de objeto/habilidad durante el próximo turno. Si el avatar enemigo tiene 600 PV o menos, inflige +30 PD.",
         effect: {
           type: "enemy_hp_below_or_equal",
           threshold: 600,
@@ -161,7 +175,8 @@ const AVATAR_OPTIONS = [
       {
         name: "Purgatorio de Anubis",
         damage: 100,
-        description: "",
+        description:
+          "Al invocarse el ataque, el oponente deberá escoger entre: en el próximo turno roba 1 carta revelándola, o eliminar 1 EM ligada a su avatar principal.",
         effect: null,
       },
     ],
@@ -225,7 +240,7 @@ const AVATAR_OPTIONS = [
       description:
         "Si el Avatar Principal del oponente es de tipo Mágico: no podrá jugar Cartas de Azar en su siguiente turno y este ataque inflige +20 PD.",
       effect: {
-        type: "enemy_main_type_bonus_and_block_chance",
+        type: "enemy_main_type_bonus",
         enemyType: "Mágico",
         bonusDamage: 20,
       },
@@ -235,12 +250,7 @@ const AVATAR_OPTIONS = [
       damage: 80,
       description:
         "Si este ataque se activa antes de 'Pacto de Honor y Gloria' por primera vez en la partida, roba 1 carta extra de tu mazo y tu oponente deberá descartar 1 carta de su mano aleatoriamente.",
-      effect: {
-        type: "first_before_named_attack_draw_and_discard",
-        attackName: "Pacto de Honor y Gloria",
-        drawCount: 1,
-        discardCount: 1,
-      },
+      effect: null,
     },
   ],
 },
@@ -259,10 +269,7 @@ const AVATAR_OPTIONS = [
       damage: 185,
       description:
         "Si el oponente tiene 4 o más cartas en su pila de descarte, podrás unir 1 carta de EM extra en este turno. Si no tienes EM en tu mano, roba 1 carta extra de tu mazo.",
-      effect: {
-        type: "enemy_discard_pile_condition_extra_em_or_draw",
-        threshold: 4,
-      },
+      effect: null,
     },
     {
       name: "Doble Filo Romano",
@@ -328,19 +335,9 @@ const AVATAR_OPTIONS = [
       description:
         "Inflige +3 PD extra por cada carta en la mano del oponente (máx. +60 PD). Si el enemigo es tipo Guerrero, inflige +20 PD.",
       effect: {
-        type: "compound",
-        effects: [
-          {
-            type: "bonus_per_enemy_hand_card",
-            bonusPerCard: 3,
-            maxBonus: 60,
-          },
-          {
-            type: "enemy_type_bonus",
-            enemyType: "Guerrero",
-            bonusDamage: 20,
-          },
-        ],
+        type: "enemy_main_type_bonus",
+        enemyType: "Guerrero",
+        bonusDamage: 20,
       },
     },
     {
@@ -370,18 +367,41 @@ const AVATAR_OPTIONS = [
         name: "Castigo de los Seis Dioses",
         damage: 210,
         description:
-          "Si el avatar enemigo tiene 750 PV o menos, este ataque hace +10 PD extra.",
+          "El oponente descarta 1 EM ligada de su Avatar Principal. Además, no podrá usar cartas de Invocación o Azar en su próximo turno. Si el Avatar Principal enemigo tiene 750 PV o menos, inflige +10 PD.",
         effect: {
-          type: "enemy_hp_below_or_equal",
-          threshold: 750,
-          bonusDamage: 10,
+          type: "compound",
+          effects: [
+            {
+              type: "remove_enemy_em",
+              amount: 1,
+            },
+            {
+              type: "enemy_hp_below_or_equal",
+              threshold: 750,
+              bonusDamage: 10,
+            },
+          ],
         },
       },
       {
         name: "Emboscada de Serafines",
         damage: 100,
-        description: "",
-        effect: null,
+        description:
+          "Si tu avatar secundario es de tipo Luz / Celestial, al usar este ataque inflige +30 PD. Además, recupera 1 EM de tu pila de descarte y +10 PV.",
+        effect: {
+          type: "compound",
+          effects: [
+            {
+              type: "bonus_if_own_secondary_type_is",
+              secondaryType: "Luz / Celestial",
+              bonusDamage: 30,
+            },
+            {
+              type: "self_heal",
+              heal: 10,
+            },
+          ],
+        },
       },
     ],
   },
@@ -401,18 +421,9 @@ const AVATAR_OPTIONS = [
       description:
         "El oponente no puede usar Cartas de Objetos o Habilidades de Curación durante 2 turnos. Si el avatar enemigo tiene 600 PV o menos, inflige +10 PD.",
       effect: {
-        type: "compound",
-        effects: [
-          {
-            type: "block_enemy_objects_and_heal",
-            durationTurns: 2,
-          },
-          {
-            type: "enemy_hp_below_or_equal",
-            threshold: 600,
-            bonusDamage: 10,
-          },
-        ],
+        type: "enemy_hp_below_or_equal",
+        threshold: 600,
+        bonusDamage: 10,
       },
     },
     {
@@ -421,18 +432,9 @@ const AVATAR_OPTIONS = [
       description:
         "Si tu avatar Secundario es de tipo Oscuro / Demoniaco, al usar este ataque inflige +30 PD. Además, el oponente revela su mano y descarta 1 carta al azar.",
       effect: {
-        type: "compound",
-        effects: [
-          {
-            type: "bonus_if_own_secondary_type_is",
-            secondaryType: "Oscuro / Demoniaco",
-            bonusDamage: 30,
-          },
-          {
-            type: "enemy_reveal_hand_and_random_discard",
-            discardCount: 1,
-          },
-        ],
+        type: "bonus_if_own_secondary_type_is",
+        secondaryType: "Oscuro / Demoniaco",
+        bonusDamage: 30,
       },
     },
   ],
@@ -605,7 +607,7 @@ const SECONDARY_AVATARS = [
         description:
           "Si el oponente es de tipo Mítico, este ataque inflige +10 PD. Además, ambos jugadores roban 1 carta de su mazo al mismo tiempo.",
         effect: {
-          type: "enemy_type_bonus",
+          type: "any_enemy_type_bonus",
           enemyType: "Mítico",
           bonusDamage: 10,
         },
@@ -615,10 +617,7 @@ const SECONDARY_AVATARS = [
         damage: 70,
         description:
           "Si al activar este ataque, Karessa está a 3 turnos o menos de salir de juego, la EM usada para activarlo regresa a tu mano.",
-        effect: {
-          type: "secondary_turns_remaining_bonus_condition",
-          thresholdTurns: 3,
-        },
+        effect: null,
       },
     ],
   },
@@ -639,11 +638,7 @@ const SECONDARY_AVATARS = [
         damage: 120,
         description:
           "Toma 2 cartas de tu mazo y revélalas a tu oponente. Luego, añádelas a tu mano, baraja y haz que tu oponente escoja 1 carta al azar. Esa carta se descarta.",
-        effect: {
-          type: "draw_and_opponent_random_discard",
-          drawCount: 2,
-          discardCount: 1,
-        },
+        effect: null,
       },
       {
         name: "Castigo del Carnero",
@@ -654,7 +649,7 @@ const SECONDARY_AVATARS = [
           type: "compound",
           effects: [
             {
-              type: "enemy_type_bonus",
+              type: "any_enemy_type_bonus",
               enemyType: "Multiversal",
               bonusDamage: 10,
             },
@@ -1212,11 +1207,109 @@ const getSecondaryAvatarData = (secondaryId) => {
   return SECONDARY_AVATARS.find((a) => a.id === secondaryId) || null;
 };
 
+const ATTACK_COST_MAP = {
+  Thalindra: {
+    "Santuario de las Criaturas": 4,
+    "Esporas Esmeralda": 2,
+  },
+  "Sarah Ardent": {
+    "Aliento de Dragón": 5,
+    "Flecha Flamígera": 3,
+  },
+  "Aethera Hex": {
+    "Supernova de Antimateria": 6,
+    "Fractura de la Realidad": 3,
+  },
+  Aurhiel: {
+    "Castigo Celestial": 4,
+    "Espada de Gracia Divina": 3,
+  },
+  Elariss: {
+    "Pacto de Honor y Gloria": 3,
+    "Sigilo Perfecto de Halcón": 2,
+  },
+  Solaria: {
+    "Castigo de los Seis Dioses": 6,
+    "Emboscada de Serafines": 4,
+  },
+  Noxaria: {
+    "Eterna Condena Blasfema": 6,
+    "Horda Dévora-Almas": 3,
+  },
+  Zahriel: {
+    "Profanación Prohibida": 4,
+    "Cacería de Almas": 3,
+  },
+  Artemia: {
+    "Coliseo de Arena y Sangre": 4,
+    "Doble Filo Romano": 2,
+  },
+  "Hal'Lethrra": {
+    "Hechizo de Sangre y Hielo": 4,
+    "Maldición y Sacrificio": 1,
+  },
+  "Nefereth Ra": {
+    "Maldición del Sol Egipcio": 5,
+    "Purgatorio de Anubis": 3,
+  },
+  "Citlali Teyah": {
+    "Ritual de Quetzalcóatl": 4,
+    "Embestida Jaguar": 2,
+  },
+  "Kohana Saionji": {
+    "Conjuro Prohibido Saionji": 5,
+    "Katana Kuro-mahō": 3,
+  },
+  "Hella Mogarth": {
+    "Despertar de Ultratumba": 3,
+    "Maldición del Cetro": 2,
+  },
+  Medusa: {
+    "Encanto Petrificante": 2,
+    "Tiro Envenenado": 1,
+  },
+  Prismara: {
+    "Alba de Justicia Inmediata": 3,
+    "Defensa Divina": 2,
+  },
+  "Valdrea Noir": {
+    "Alas de Condena y Justicia": 3,
+    "Pacto de Sangre": 2,
+  },
+  "Karessa Dránn": {
+    "Cortadura Hiriente Neón": 2,
+    "Runa Victoriosa": 1,
+  },
+  Necrondra: {
+    "Hechizo de Ceguera Mental": 2,
+    "Castigo del Carnero": 1,
+  },
+};
+
+const getAttackCost = (avatarName, attack) => {
+  if (!attack) return 0;
+  return ATTACK_COST_MAP[avatarName]?.[attack.name] ?? attack.cost ?? 0;
+};
+
 const createCombatState = () => ({
   previousTurnAttack: null,
   currentTurnAttack: null,
+  previousTurnEmPlaced: false,
+  currentTurnEmPlaced: false,
   consecutiveAttackName: null,
   consecutiveCount: 0,
+  nextAttackBonus: {
+    amount: 0,
+  },
+  nextAttackReduction: {
+    amount: 0,
+  },
+  pendingAttackBonuses: {},
+  emPlacementBlockedTurns: 0,
+  poisonPerTurn: {
+    amount: 0,
+    sourceSecondaryId: null,
+  },
   damageReduction: {
     amount: 0,
     turnsLeft: 0,
@@ -1237,6 +1330,7 @@ function PlayerPanel({
   setDefaultHp,
   history,
   setHistory,
+  ownCombatState,
   setOwnCombatState,
   mainHpFlash,
   secondaryHpFlash,
@@ -1254,6 +1348,9 @@ function PlayerPanel({
   rouletteIndex,
   onAttackRequest,
   onHealRequest,
+  ownEm,
+  onIncreaseEm,
+  onDecreaseEm,
   gameStarted,
   gameOver,
   isTurnActive,
@@ -1333,6 +1430,85 @@ const hasHealableTarget =
   (secondaryAvatar && secondaryAvatar.currentHp < secondaryAvatar.maxHp);
 const canUseHealButtons =
   gameStarted && !gameOver && isTurnActive && hasHealableTarget;
+const canPlaceEm =
+  gameStarted &&
+  !gameOver &&
+  isTurnActive &&
+  (ownCombatState?.emPlacementBlockedTurns || 0) <= 0;
+
+const renderEnergyControl = () => (
+  <div
+    className={`em-control-stack ${isLeftSide ? "em-control-red" : "em-control-cyan"}`}
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "8px",
+    }}
+  >
+    <button
+      type="button"
+      className="em-control-btn"
+      onClick={onIncreaseEm}
+      disabled={!canPlaceEm}
+      style={{
+        width: "90px",
+        height: "44px",
+        border: "none",
+        borderRadius: "14px",
+        background: "rgba(255, 255, 255, 0.16)",
+        color: "white",
+        fontSize: "1.9rem",
+        fontWeight: 800,
+        cursor: "pointer",
+      }}
+      title={!canPlaceEm && gameStarted && !gameOver && isTurnActive ? "No puedes ligar EM este turno" : undefined}
+    >
+      +
+    </button>
+
+    <button
+      type="button"
+      className="em-control-display"
+      disabled
+      style={{
+        width: "90px",
+        minHeight: "54px",
+        border: "none",
+        borderRadius: "14px",
+        background: "rgba(0, 0, 0, 0.45)",
+        color: "white",
+        fontSize: "1rem",
+        fontWeight: 800,
+        cursor: "default",
+      }}
+      title="Energía Multiversal actual"
+    >
+      <span className="em-control-value">{ownEm}</span>{" "}
+      <span className="em-control-label">EM</span>
+    </button>
+
+    <button
+      type="button"
+      className="em-control-btn"
+      onClick={onDecreaseEm}
+      disabled={!gameStarted || gameOver || !isTurnActive || ownEm <= 0}
+      style={{
+        width: "90px",
+        height: "44px",
+        border: "none",
+        borderRadius: "14px",
+        background: "rgba(255, 255, 255, 0.16)",
+        color: "white",
+        fontSize: "1.9rem",
+        fontWeight: 800,
+        cursor: "pointer",
+      }}
+    >
+      -
+    </button>
+  </div>
+);
 
 const updateDisplayedMainHp = (value) => {
   displayedMainHpRef.current = value;
@@ -1499,7 +1675,7 @@ const handleToggleActiveAvatar = () => {
 };
 
 return (
-<div className={`player-panel ${bgClass}`}>
+<div className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""}`}>
   <div className="panel-bg">
     <img
   key={isRouletteActive ? `roulette-${rouletteIndex}` : avatarData.image}
@@ -1706,15 +1882,7 @@ return (
           )}
         </>
       ) : (
-        <button
-          className="reset-btn hp-reset-btn icon-reset-btn"
-          onClick={onRequestResetHp}
-          title="Reiniciar PV"
-          aria-label="Reiniciar PV"
-          disabled={!gameStarted || gameOver || !isTurnActive}
-        >
-          <img src="/ui/reset-pv.png" alt="Reiniciar PV" className="reset-icon" />
-        </button>
+        renderEnergyControl()
       )}
     </div>
   )}
@@ -1729,15 +1897,7 @@ return (
 {gameStarted && (
   <div className="hp-side-action right-action">
     {isLeftSide ? (
-      <button
-        className="reset-btn hp-reset-btn icon-reset-btn"
-        onClick={onRequestResetHp}
-        title="Reiniciar PV"
-        aria-label="Reiniciar PV"
-        disabled={!gameStarted || gameOver || !isTurnActive}
-      >
-        <img src="/ui/reset-pv.png" alt="Reiniciar PV" className="reset-icon" />
-      </button>
+      renderEnergyControl()
     ) : (
       <button
         className="secondary-avatar-btn icon-secondary-btn"
@@ -1771,18 +1931,26 @@ return (
 </div>
 
       <div className="attacks-box">
-        {activeAttacks.map((attack) => (
-          <button
-            key={attack.name}
-            className="attack-btn"
-            onClick={() => onAttackRequest(attack, activeSlot)}
-            title={attack.description || attack.name}
-            disabled={!gameStarted || gameOver || !isTurnActive}
->
-            <span className="attack-name">{attack.name}</span>
-            <span className="attack-damage">-{attack.damage} PD</span>
-          </button>
-        ))}
+        {activeAttacks.map((attack) => {
+          const attackCost = getAttackCost(activeAvatar.name, attack);
+          const hasEnoughEm = ownEm >= attackCost;
+
+          return (
+            <button
+              key={attack.name}
+              className="attack-btn"
+              onClick={() => onAttackRequest(attack, activeSlot)}
+              title={attack.description || attack.name}
+              disabled={!gameStarted || gameOver || !isTurnActive || !hasEnoughEm}
+            >
+              <span className="attack-name">{attack.name}</span>
+              <span className="attack-damage">
+                <span className="attack-damage-value">-{attack.damage} PD</span>
+                <span className="attack-cost">• {attackCost} EM</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className={`buttons-salud ${!isLeftSide ? "buttons-salud-right" : ""}`}>
@@ -2966,6 +3134,8 @@ export default function App() {
 
   const [player1Hp, setPlayer1Hp] = useState(AVATAR_OPTIONS[0].hp);
   const [player2Hp, setPlayer2Hp] = useState(AVATAR_OPTIONS[1].hp);
+  const [player1Em, setPlayer1Em] = useState(0);
+  const [player2Em, setPlayer2Em] = useState(0);
 
   const [player1History, setPlayer1History] = useState([]);
   const [player2History, setPlayer2History] = useState([]);
@@ -3145,7 +3315,10 @@ useEffect(() => {
   };
 }, [player1SecondaryTurnDisplay, player2SecondaryTurnDisplay]);
 
-const resetGameState = () => {
+const resetGameState = (options = {}) => {
+  const preserveAvatars = options.preserveAvatars ?? false;
+  const nextPlayer1Avatar = preserveAvatars ? getAvatarData(player1Name) : AVATAR_OPTIONS[0];
+  const nextPlayer2Avatar = preserveAvatars ? getAvatarData(player2Name) : AVATAR_OPTIONS[1];
   Object.keys(secondaryTurnTimeoutRef.current).forEach((playerId) => {
     if (secondaryTurnTimeoutRef.current[playerId]) {
       clearTimeout(secondaryTurnTimeoutRef.current[playerId]);
@@ -3155,14 +3328,16 @@ const resetGameState = () => {
 
   setTurn(1);
 
-  setPlayer1Name(AVATAR_OPTIONS[0].name);
-  setPlayer2Name(AVATAR_OPTIONS[1].name);
+  setPlayer1Name(nextPlayer1Avatar.name);
+  setPlayer2Name(nextPlayer2Avatar.name);
 
-  setPlayer1BaseHp(AVATAR_OPTIONS[0].hp);
-  setPlayer2BaseHp(AVATAR_OPTIONS[1].hp);
+  setPlayer1BaseHp(nextPlayer1Avatar.hp);
+  setPlayer2BaseHp(nextPlayer2Avatar.hp);
 
-  setPlayer1Hp(AVATAR_OPTIONS[0].hp);
-  setPlayer2Hp(AVATAR_OPTIONS[1].hp);
+  setPlayer1Hp(nextPlayer1Avatar.hp);
+  setPlayer2Hp(nextPlayer2Avatar.hp);
+  setPlayer1Em(0);
+  setPlayer2Em(0);
 
   setPlayer1History([]);
   setPlayer2History([]);
@@ -3439,6 +3614,18 @@ const closeHealTargetModal = () => {
 const handleAttackRequest = (attackerId, attack, attackerSlot) => {
   const enemyHasSecondary =
     attackerId === "player1" ? !!player2Secondary : !!player1Secondary;
+  const ownEm = attackerId === "player1" ? player1Em : player2Em;
+  const attackerAvatarName =
+    attackerSlot === "main"
+      ? attackerId === "player1"
+        ? player1Name
+        : player2Name
+      : attackerId === "player1"
+      ? player1Secondary?.name
+      : player2Secondary?.name;
+  const attackCost = getAttackCost(attackerAvatarName, attack);
+
+  if (ownEm < attackCost) return;
 
   const enemyMainName =
     attackerId === "player1" ? player2Name : player1Name;
@@ -3524,6 +3711,10 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
   const setOwnMainHp = isPlayer1 ? setPlayer1Hp : setPlayer2Hp;
   const setEnemyMainHp = isPlayer1 ? setPlayer2Hp : setPlayer1Hp;
+  const ownEm = isPlayer1 ? player1Em : player2Em;
+  const setOwnEm = isPlayer1 ? setPlayer1Em : setPlayer2Em;
+  const enemyEm = isPlayer1 ? player2Em : player1Em;
+  const setEnemyEm = isPlayer1 ? setPlayer2Em : setPlayer1Em;
 
   const ownMainHp = isPlayer1 ? player1Hp : player2Hp;
   const enemyMainHp = isPlayer1 ? player2Hp : player1Hp;
@@ -3560,6 +3751,8 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     attackerSlot === "main"
       ? ownMainHp
       : attackerSecondary?.currentHp || 0;
+  const attackerAttackCount =
+    attackerSlot === "secondary" ? attackerSecondary?.attackCount || 0 : 0;
 
   const targetCurrentHp =
     targetSlot === "main"
@@ -3570,10 +3763,16 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     targetSlot === "main"
       ? enemyMainData.type
       : enemySecondary?.type || "";
+  const attackCost = getAttackCost(ownTargetName, attack);
+
+  if (ownEm < attackCost) return;
 
   let totalDamage = attack.damage;
   let selfHeal = 0;
   let selfDamage = 0;
+  let healOnSecondaryDefeat = 0;
+  let blockEnemyEmTurns = 0;
+  let blockEnemyEmIfMainHpAtOrBelow = null;
   const notes = [];
 
   const addOwnHistory = (text) => {
@@ -3615,10 +3814,21 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         }
         break;
 
+      case "if_attack_leaves_enemy_main_at_or_below_block_em":
+        blockEnemyEmIfMainHpAtOrBelow = effect.threshold;
+        break;
+
       case "bonus_if_previous_turn_attack_was":
         if (attackerSlot === "main" && ownCombatState.previousTurnAttack === effect.attackName) {
           totalDamage += effect.bonusDamage;
           notes.push(`Combo previo: +${effect.bonusDamage} PD`);
+        }
+        break;
+
+      case "enemy_main_type_bonus":
+        if (enemyMainData.type === effect.enemyType) {
+          totalDamage += effect.bonusDamage;
+          notes.push(`Ventaja sobre avatar principal: +${effect.bonusDamage} PD`);
         }
         break;
 
@@ -3670,10 +3880,159 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         }
         break;
 
+      case "any_enemy_type_bonus":
+        if (enemyMainData.type === effect.enemyType || enemySecondary?.type === effect.enemyType) {
+          totalDamage += effect.bonusDamage;
+          notes.push(`Ventaja de tipo: +${effect.bonusDamage} PD`);
+        }
+        break;
+
       case "self_hp_below_bonus":
         if (attackerCurrentHp < effect.threshold) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por PV bajos: +${effect.bonusDamage} PD`);
+        }
+        break;
+
+      case "reduce_enemy_next_attack": {
+        const reductionAmount =
+          targetType === effect.enemyType ? effect.typeReduction : effect.baseReduction;
+
+        setEnemyCombatState((prev) => ({
+          ...prev,
+          nextAttackReduction: {
+            amount: reductionAmount,
+          },
+        }));
+        notes.push(`El próximo ataque del rival se reduce en ${reductionAmount} PD`);
+        break;
+      }
+
+      case "enemy_has_more_em_than_self_bonus":
+        if (enemyEm > ownEm) {
+          totalDamage += effect.bonusDamage;
+          notes.push(`Bono por ventaja de EM rival: +${effect.bonusDamage} PD`);
+        }
+        break;
+
+      case "if_enemy_has_no_em_bonus":
+        if (enemyEm <= 0) {
+          totalDamage += effect.bonusDamage;
+          notes.push(`Bono por rival sin EM: +${effect.bonusDamage} PD`);
+        }
+        break;
+
+      case "conditional_previous_turn_em":
+        if (enemyCombatState.previousTurnEmPlaced) {
+          totalDamage += effect.bonusDamage || 0;
+          if (effect.bonusDamage) {
+            notes.push(`Bono por EM ligada el turno anterior: +${effect.bonusDamage} PD`);
+          }
+        }
+        break;
+
+      case "if_attack_defeats_secondary_self_heal":
+        healOnSecondaryDefeat += effect.heal || 0;
+        break;
+
+      case "grant_enemy_next_turn_bonus_damage":
+        setEnemyCombatState((prev) => ({
+          ...prev,
+          nextAttackBonus: {
+            amount: effect.amount || 0,
+          },
+        }));
+        notes.push(`El próximo ataque del rival gana +${effect.amount || 0} PD`);
+        break;
+
+      case "medusa_first_attack_or_block_em":
+        if (attackerAttackCount === 0) {
+          const lostOnSummon = Math.floor((attackerSecondary?.maxHp || 0) / 2);
+          selfHeal += lostOnSummon;
+          notes.push(`Primer ataque de Medusa: +${lostOnSummon} PV`);
+        } else {
+          blockEnemyEmTurns = 1;
+          notes.push("El rival no podrá ligar EM en su próximo turno");
+        }
+        break;
+
+      case "poison_until_secondary_leaves":
+        setEnemyCombatState((prev) => ({
+          ...prev,
+          poisonPerTurn: {
+            amount: effect.amount || 0,
+            sourceSecondaryId: attackerSecondary?.id || null,
+          },
+        }));
+        notes.push(`Veneno activo: ${effect.amount || 0} PV por turno`);
+        break;
+
+      case "prismara_first_attack_or_draw":
+        if (attackerAttackCount === 0) {
+          selfHeal += effect.heal || 0;
+          notes.push(`Primer ataque de Prismara: +${effect.heal || 0} PV`);
+        }
+        break;
+
+      case "grant_main_damage_reduction_if_enemy_type":
+        if (targetType === effect.enemyType) {
+          setOwnCombatState((prev) => ({
+            ...prev,
+            damageReduction: {
+              amount: effect.amount,
+              turnsLeft: 1,
+            },
+          }));
+          notes.push(`Tu avatar principal reduce ${effect.amount} PD del próximo ataque`);
+        }
+        break;
+
+      case "bonus_next_time_if_hits_main_multiversal":
+        if (targetSlot === "main" && enemyMainData.type === "Multiversal") {
+          setOwnCombatState((prev) => ({
+            ...prev,
+            pendingAttackBonuses: {
+              ...prev.pendingAttackBonuses,
+              [attack.name]: (prev.pendingAttackBonuses?.[attack.name] || 0) + (effect.bonusDamage || 0),
+            },
+          }));
+          notes.push(`La próxima vez ${attack.name} gana +${effect.bonusDamage || 0} PD`);
+        }
+        break;
+
+      case "bonus_if_own_secondary_type_is":
+        if (attackerSecondary?.type === effect.secondaryType) {
+          totalDamage += effect.bonusDamage;
+          notes.push(`Bono por avatar secundario: +${effect.bonusDamage} PD`);
+        }
+        break;
+
+      case "if_enemy_has_energy_or_chance_bonus_and_heal":
+        if (enemyEm > 0) {
+          totalDamage += effect.bonusDamage || 0;
+          selfHeal += effect.heal || 0;
+          if (effect.bonusDamage) {
+            notes.push(`Bono por EM enemiga: +${effect.bonusDamage} PD`);
+          }
+          if (effect.heal) {
+            notes.push(`Efecto activo: +${effect.heal} PV`);
+          }
+        }
+        break;
+
+      case "remove_enemy_em": {
+        const amountToRemove = Math.min(enemyEm, effect.amount || 0);
+        if (amountToRemove > 0) {
+          setEnemyEm((prev) => Math.max(0, prev - amountToRemove));
+          notes.push(`El rival pierde ${amountToRemove} EM`);
+        }
+        break;
+      }
+
+      case "gain_self_em":
+        if ((effect.amount || 0) > 0) {
+          setOwnEm((prev) => prev + (effect.amount || 0));
+          notes.push(`Recupera +${effect.amount} EM`);
         }
         break;
 
@@ -3688,7 +4047,49 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     notes.push(`Marca activa: +${enemyCombatState.extraDamageTaken.amount} PD`);
   }
 
+  if (ownCombatState.nextAttackBonus.amount > 0) {
+    totalDamage += ownCombatState.nextAttackBonus.amount;
+    notes.push(`Bono del próximo ataque: +${ownCombatState.nextAttackBonus.amount} PD`);
+    setOwnCombatState((prev) => ({
+      ...prev,
+      nextAttackBonus: {
+        amount: 0,
+      },
+    }));
+  }
+
+  const storedAttackBonus = ownCombatState.pendingAttackBonuses?.[attack.name] || 0;
+  if (storedAttackBonus > 0) {
+    totalDamage += storedAttackBonus;
+    notes.push(`Bono almacenado: +${storedAttackBonus} PD`);
+    setOwnCombatState((prev) => ({
+      ...prev,
+      pendingAttackBonuses: {
+        ...prev.pendingAttackBonuses,
+        [attack.name]: 0,
+      },
+    }));
+  }
+
+  if (ownCombatState.nextAttackReduction.amount > 0) {
+    totalDamage = Math.max(0, totalDamage - ownCombatState.nextAttackReduction.amount);
+    notes.push(`Ataque reducido en ${ownCombatState.nextAttackReduction.amount} PD`);
+    setOwnCombatState((prev) => ({
+      ...prev,
+      nextAttackReduction: {
+        amount: 0,
+      },
+    }));
+  }
+
   processEffect(attack.effect);
+
+  if (blockEnemyEmTurns > 0) {
+    setEnemyCombatState((prev) => ({
+      ...prev,
+      emPlacementBlockedTurns: Math.max(prev.emPlacementBlockedTurns, blockEnemyEmTurns),
+    }));
+  }
 
   if (targetSlot === "main" && enemyCombatState.damageReduction.turnsLeft > 0) {
     totalDamage = Math.max(0, totalDamage - enemyCombatState.damageReduction.amount);
@@ -3696,8 +4097,16 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   }
 
   if (targetSlot === "main") {
-    setEnemyMainHp((prev) => Math.max(0, prev - totalDamage));
+    const newMainHp = Math.max(0, enemyMainHp - totalDamage);
+    setEnemyMainHp(newMainHp);
     if (totalDamage > 0) triggerEnemyFlash("main", "damage");
+    if (
+      blockEnemyEmIfMainHpAtOrBelow !== null &&
+      newMainHp <= blockEnemyEmIfMainHpAtOrBelow
+    ) {
+      blockEnemyEmTurns = Math.max(blockEnemyEmTurns, 1);
+      notes.push("El rival no podrá ligar EM en su próximo turno");
+    }
   } else if (enemySecondary) {
     const newSecondaryHp = Math.max(0, enemySecondary.currentHp - totalDamage);
 
@@ -3705,8 +4114,23 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       setEnemySecondary(null);
       setEnemySecondaryTurnDisplay(null);
       setEnemyActiveSlot("main");
+      setOwnCombatState((prev) =>
+        prev.poisonPerTurn.sourceSecondaryId === enemySecondary.id
+          ? {
+              ...prev,
+              poisonPerTurn: {
+                amount: 0,
+                sourceSecondaryId: null,
+              },
+            }
+          : prev
+      );
       addEnemyHistory(`${enemySecondary.name} fue eliminada`);
       notes.push(`${enemySecondary.name} eliminada`);
+      if (healOnSecondaryDefeat > 0) {
+        selfHeal += healOnSecondaryDefeat;
+        notes.push(`Derrota a secundario: +${healOnSecondaryDefeat} PV`);
+      }
     } else {
       setEnemySecondary((prev) => ({
         ...prev,
@@ -3749,6 +4173,17 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         setOwnSecondary(null);
         setOwnSecondaryTurnDisplay(null);
         setOwnActiveSlot("main");
+        setEnemyCombatState((prev) =>
+          prev.poisonPerTurn.sourceSecondaryId === attackerSecondary.id
+            ? {
+                ...prev,
+                poisonPerTurn: {
+                  amount: 0,
+                  sourceSecondaryId: null,
+                },
+              }
+            : prev
+        );
         notes.push(`${attackerSecondary.name} fue eliminada`);
       } else {
         setOwnSecondary((prev) => ({
@@ -3762,6 +4197,11 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     }
   }
 
+  if (attackCost > 0) {
+    setOwnEm((prev) => Math.max(0, prev - attackCost));
+    notes.push(`-${attackCost} EM`);
+  }
+
   if (attackerSlot === "main") {
     setOwnCombatState((prev) => {
       const sameAttack = prev.consecutiveAttackName === attack.name;
@@ -3773,6 +4213,11 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         consecutiveCount: sameAttack ? prev.consecutiveCount + 1 : 1,
       };
     });
+  } else if (attackerSecondary) {
+    setOwnSecondary((prev) => ({
+      ...prev,
+      attackCount: (prev.attackCount || 0) + 1,
+    }));
   }
 
   const historyText =
@@ -3806,6 +4251,7 @@ const handleConfirmSecondarySummon = () => {
     currentHp: Math.floor(avatar.hp / 2),
     maxHp: avatar.hp,
     turnsRemaining: avatar.turnsDuration,
+    attackCount: 0,
     isActive: false,
     hasEntered: true,
   };
@@ -3966,11 +4412,64 @@ const navigateWithTransition = (nextScreen) => {
 const handlePassTurn = (playerId) => {
   if (!gameStarted || gameOver) return;
 
+  const closeOwnTurnState = (ownerId) => {
+    const setCombatState = ownerId === "player1" ? setPlayer1CombatState : setPlayer2CombatState;
+
+    setCombatState((prev) => ({
+      ...prev,
+      previousTurnAttack: prev.currentTurnAttack,
+      currentTurnAttack: null,
+      previousTurnEmPlaced: prev.currentTurnEmPlaced,
+      currentTurnEmPlaced: false,
+      emPlacementBlockedTurns: Math.max(0, (prev.emPlacementBlockedTurns || 0) - 1),
+    }));
+  };
+
+  const applyPoisonTick = (ownerId) => {
+    const poisonState = ownerId === "player1" ? player1CombatState.poisonPerTurn : player2CombatState.poisonPerTurn;
+    if (!poisonState?.amount || poisonState.amount <= 0) return;
+
+    const sourceSecondary =
+      ownerId === "player1" ? player2Secondary : player1Secondary;
+
+    if (!sourceSecondary || sourceSecondary.id !== poisonState.sourceSecondaryId) {
+      const setCombatState = ownerId === "player1" ? setPlayer1CombatState : setPlayer2CombatState;
+      setCombatState((prev) => ({
+        ...prev,
+        poisonPerTurn: {
+          amount: 0,
+          sourceSecondaryId: null,
+        },
+      }));
+      return;
+    }
+
+    const setHp = ownerId === "player1" ? setPlayer1Hp : setPlayer2Hp;
+    const setFlash = ownerId === "player1" ? setPlayer1MainHpFlash : setPlayer2MainHpFlash;
+    const setHistory = ownerId === "player1" ? setPlayer1History : setPlayer2History;
+
+    setHp((prev) => Math.max(0, prev - poisonState.amount));
+    triggerFlash(setFlash, "damage");
+    setHistory((prev) => [
+      `Veneno activo: -${poisonState.amount} PV`,
+      ...prev.slice(0, 5),
+    ]);
+  };
+
   const decrementSecondaryTurns = (ownerId) => {
     if (ownerId === "player1" && player1Secondary) {
       const nextTurns = player1Secondary.turnsRemaining - 1;
 
       if (nextTurns <= 0) {
+        if (player1Secondary.id === "medusa") {
+          setPlayer2CombatState((prev) => ({
+            ...prev,
+            poisonPerTurn: {
+              amount: 0,
+              sourceSecondaryId: null,
+            },
+          }));
+        }
         setPlayer1Secondary(null);
         showExpiredSecondaryTurn("player1");
         setPlayer1ActiveSlot("main");
@@ -3991,6 +4490,15 @@ const handlePassTurn = (playerId) => {
       const nextTurns = player2Secondary.turnsRemaining - 1;
 
       if (nextTurns <= 0) {
+        if (player2Secondary.id === "medusa") {
+          setPlayer1CombatState((prev) => ({
+            ...prev,
+            poisonPerTurn: {
+              amount: 0,
+              sourceSecondaryId: null,
+            },
+          }));
+        }
         setPlayer2Secondary(null);
         showExpiredSecondaryTurn("player2");
         setPlayer2ActiveSlot("main");
@@ -4010,6 +4518,8 @@ const handlePassTurn = (playerId) => {
 
   if (startingPlayer === null) {
     const otherPlayer = playerId === "player1" ? "player2" : "player1";
+    closeOwnTurnState(playerId);
+    applyPoisonTick(playerId);
     decrementSecondaryTurns(playerId);
     setStartingPlayer(playerId);
     setCurrentTurnPlayer(otherPlayer);
@@ -4018,6 +4528,8 @@ const handlePassTurn = (playerId) => {
 
   if (currentTurnPlayer !== playerId) return;
 
+  closeOwnTurnState(playerId);
+  applyPoisonTick(playerId);
   decrementSecondaryTurns(playerId);
 
   if (playerId === startingPlayer) {
@@ -4713,7 +5225,7 @@ const formattedTime =
                 <button
                   className="restart-accept-btn"
                   onClick={() => {
-                    resetGameState();
+                    resetGameState({ preserveAvatars: true });
                     setShowRestartConfirm(false);
                   }}
                 >
@@ -4798,6 +5310,15 @@ const formattedTime =
               handleAttackRequest("player1", attack, attackerSlot)
             }
             onHealRequest={(amount) => handleHealRequest("player1", amount)}
+            ownEm={player1Em}
+            onIncreaseEm={() => {
+              setPlayer1Em((prev) => prev + 1);
+              setPlayer1CombatState((prev) => ({
+                ...prev,
+                currentTurnEmPlaced: true,
+              }));
+            }}
+            onDecreaseEm={() => setPlayer1Em((prev) => Math.max(0, prev - 1))}
             isRouletteActive={isRouletteActive}
             rouletteIndex={roulettePlayer1Index}
           />
@@ -4858,6 +5379,15 @@ const formattedTime =
               handleAttackRequest("player2", attack, attackerSlot)
             }
             onHealRequest={(amount) => handleHealRequest("player2", amount)}
+            ownEm={player2Em}
+            onIncreaseEm={() => {
+              setPlayer2Em((prev) => prev + 1);
+              setPlayer2CombatState((prev) => ({
+                ...prev,
+                currentTurnEmPlaced: true,
+              }));
+            }}
+            onDecreaseEm={() => setPlayer2Em((prev) => Math.max(0, prev - 1))}
             isRouletteActive={isRouletteActive}
             rouletteIndex={roulettePlayer2Index}
           />  
