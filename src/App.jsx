@@ -1249,7 +1249,7 @@ const ATTACK_COST_MAP = {
     "Maldición y Sacrificio": 1,
   },
   "Nefereth Ra": {
-    "Maldición del Sol Egipcio": 5,
+    "Maldición de Sol Egipcio": 5,
     "Purgatorio de Anubis": 3,
   },
   "Citlali Teyah": {
@@ -1291,6 +1291,9 @@ const getAttackCost = (avatarName, attack) => {
   return ATTACK_COST_MAP[avatarName]?.[attack.name] ?? attack.cost ?? 0;
 };
 
+const getAttackModifierKey = (playerId, slot, avatarName, attackName) =>
+  `${playerId}:${slot}:${avatarName}:${attackName}`;
+
 const createCombatState = () => ({
   previousTurnAttack: null,
   currentTurnAttack: null,
@@ -1321,6 +1324,7 @@ const createCombatState = () => ({
 });
 
 function PlayerPanel({
+  panelPlayerId,
   playerLabel,
   name,
   setName,
@@ -1356,7 +1360,10 @@ function PlayerPanel({
   isTurnActive,
   canPassTurn,
   onPassTurn,
+  onRequestAdjustAttack,
+  getAdjustedAttackDamage,
   bgClass,
+  hpSyncRequest,
 }) {
   
   const avatarData = getAvatarData(name);
@@ -1412,8 +1419,13 @@ const activeAvatar =
 
 const isSecondaryActive = activeSlot === "secondary" && !!secondaryAvatar;
 const activeAttacks = activeAvatar.attacks || [];
+const maxAttackCost = activeAttacks.reduce(
+  (max, currentAttack) => Math.max(max, getAttackCost(activeAvatar.name, currentAttack)),
+  0
+);
 const activeHpFlash = isSecondaryActive ? secondaryHpFlash : mainHpFlash;
 const secondaryPanelHpFlash = isSecondaryActive ? mainHpFlash : secondaryHpFlash;
+const activeEm = isSecondaryActive ? secondaryAvatar?.currentEm ?? 0 : ownEm;
 const shouldShowTypeIconInColor = isTurnActive || showInactiveTypeIconColor;
 const activeDisplayedHp = isSecondaryActive ? displayedSecondaryHp : displayedMainHp;
 const secondaryPanelDisplayedHp = isSecondaryActive ? displayedMainHp : displayedSecondaryHp;
@@ -1443,6 +1455,7 @@ const renderEnergyControl = () => (
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
+      justifyContent: "flex-end",
       gap: "8px",
     }}
   >
@@ -1484,7 +1497,7 @@ const renderEnergyControl = () => (
       }}
       title="Energía Multiversal actual"
     >
-      <span className="em-control-value">{ownEm}</span>{" "}
+      <span className="em-control-value">{activeEm}</span>{" "}
       <span className="em-control-label">EM</span>
     </button>
 
@@ -1492,7 +1505,7 @@ const renderEnergyControl = () => (
       type="button"
       className="em-control-btn"
       onClick={onDecreaseEm}
-      disabled={!gameStarted || gameOver || !isTurnActive || ownEm <= 0}
+      disabled={!gameStarted || gameOver || !isTurnActive || activeEm <= 0}
       style={{
         width: "90px",
         height: "44px",
@@ -1640,6 +1653,19 @@ useEffect(() => {
     secondaryHpAnimationRef
   );
 }, [secondaryAvatar?.id, secondaryAvatar?.currentHp]);
+
+useEffect(() => {
+  if (!hpSyncRequest || hpSyncRequest.playerId !== panelPlayerId) return;
+
+  if (hpSyncRequest.slot === "secondary") {
+    if (secondaryHpAnimationRef.current) cancelAnimationFrame(secondaryHpAnimationRef.current);
+    updateDisplayedSecondaryHp(secondaryAvatar?.currentHp ?? 0);
+    return;
+  }
+
+  if (mainHpAnimationRef.current) cancelAnimationFrame(mainHpAnimationRef.current);
+  updateDisplayedMainHp(hp);
+}, [hpSyncRequest, panelPlayerId, hp, secondaryAvatar?.currentHp]);
 
   const handleAvatarChange = (selectedName) => {
   const selectedAvatar = getAvatarData(selectedName);
@@ -1933,22 +1959,62 @@ return (
       <div className="attacks-box">
         {activeAttacks.map((attack) => {
           const attackCost = getAttackCost(activeAvatar.name, attack);
-          const hasEnoughEm = ownEm >= attackCost;
+          const adjustedDamage = getAdjustedAttackDamage
+            ? getAdjustedAttackDamage(activeSlot, activeAvatar.name, attack)
+            : attack.damage;
+          const hasEnoughEm = activeEm >= attackCost;
+          const attackIsReady = gameStarted && !gameOver && isTurnActive && hasEnoughEm;
+          const attackHasPulse = attackIsReady && attackCost === maxAttackCost && maxAttackCost > 0;
 
           return (
-            <button
+            <div
               key={attack.name}
-              className="attack-btn"
-              onClick={() => onAttackRequest(attack, activeSlot)}
-              title={attack.description || attack.name}
-              disabled={!gameStarted || gameOver || !isTurnActive || !hasEnoughEm}
+              className={`attack-card ${isLeftSide ? "attack-card-red" : "attack-card-blue"}`}
             >
-              <span className="attack-name">{attack.name}</span>
-              <span className="attack-damage">
-                <span className="attack-damage-value">-{attack.damage} PD</span>
-                <span className="attack-cost">• {attackCost} EM</span>
-              </span>
-            </button>
+              <button
+                type="button"
+                className="attack-adjust-btn"
+                aria-label={`Ajustar daño de ${attack.name}`}
+                title={`Ajustar daño de ${attack.name}`}
+                disabled={!gameStarted || gameOver || !isTurnActive || !hasEnoughEm}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRequestAdjustAttack?.(attack, activeSlot, activeAvatar.name);
+                }}
+              >
+                +
+              </button>
+              <button
+                className={`attack-btn attack-card-main ${
+                  attackIsReady ? `attack-ready ${isLeftSide ? "attack-ready-red" : "attack-ready-blue"}` : ""
+                } ${
+                  attackHasPulse
+                    ? isLeftSide
+                      ? "attack-ready-pulse-red"
+                      : "attack-ready-pulse-blue"
+                    : ""
+                }`}
+                onClick={() => onAttackRequest(attack, activeSlot)}
+                title={attack.description || attack.name}
+                disabled={!attackIsReady}
+              >
+                <span className="attack-name">{attack.name}</span>
+                <span className="attack-damage">
+                  <span className="attack-damage-value">-{adjustedDamage} PD</span>
+                  <span
+                    className={`attack-cost ${
+                      attackIsReady
+                        ? isLeftSide
+                          ? "attack-cost-red"
+                          : "attack-cost-blue"
+                        : "attack-cost-disabled"
+                    }`}
+                  >
+                    • {attackCost} EM
+                  </span>
+                </span>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -3159,6 +3225,19 @@ export default function App() {
   const [adjustTargetSlot, setAdjustTargetSlot] = useState("main");
   const [adjustMode, setAdjustMode] = useState("-");
   const [adjustValue, setAdjustValue] = useState("");
+  const [hpSyncRequest, setHpSyncRequest] = useState(null);
+  const [showAdjustAttackModal, setShowAdjustAttackModal] = useState(false);
+  const [adjustAttackPlayer, setAdjustAttackPlayer] = useState(null);
+  const [adjustAttackSlot, setAdjustAttackSlot] = useState("main");
+  const [adjustAttackAvatarName, setAdjustAttackAvatarName] = useState("");
+  const [adjustAttackName, setAdjustAttackName] = useState("");
+  const [adjustAttackBaseDamage, setAdjustAttackBaseDamage] = useState(0);
+  const [adjustAttackMode, setAdjustAttackMode] = useState("-");
+  const [adjustAttackValue, setAdjustAttackValue] = useState("");
+  const attackAdjustClearHoldRef = useRef(null);
+  const attackAdjustClearTriggeredRef = useRef(false);
+  const [player1AttackModifiers, setPlayer1AttackModifiers] = useState({});
+  const [player2AttackModifiers, setPlayer2AttackModifiers] = useState({});
 
   const [isRouletteActive, setIsRouletteActive] = useState(false);
   const [roulettePlayer1Index, setRoulettePlayer1Index] = useState(0);
@@ -3204,6 +3283,160 @@ export default function App() {
   const [pendingHealAmount, setPendingHealAmount] = useState(null);
   const [pendingHealPlayer, setPendingHealPlayer] = useState(null);
   const [selectedHealTargetSlot, setSelectedHealTargetSlot] = useState(null);
+  const [battleUndoStack, setBattleUndoStack] = useState([]);
+  const [battleRedoStack, setBattleRedoStack] = useState([]);
+
+  const getPlayerSlotEm = (playerId, slot) => {
+    if (playerId === "player1") {
+      return slot === "secondary" ? player1Secondary?.currentEm ?? 0 : player1Em;
+    }
+
+    return slot === "secondary" ? player2Secondary?.currentEm ?? 0 : player2Em;
+  };
+
+  const adjustPlayerSlotEm = (playerId, slot, delta, options = {}) => {
+    const { markPlaced = false } = options;
+    const isPlayer1 = playerId === "player1";
+
+    if (slot === "secondary") {
+      const setSecondary = isPlayer1 ? setPlayer1Secondary : setPlayer2Secondary;
+
+      setSecondary((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          currentEm: Math.max(0, (prev.currentEm || 0) + delta),
+        };
+      });
+    } else if (isPlayer1) {
+      setPlayer1Em((prev) => Math.max(0, prev + delta));
+    } else {
+      setPlayer2Em((prev) => Math.max(0, prev + delta));
+    }
+
+    if (markPlaced && delta > 0) {
+      const setCombatState = isPlayer1 ? setPlayer1CombatState : setPlayer2CombatState;
+      setCombatState((prev) => ({
+        ...prev,
+        currentTurnEmPlaced: true,
+      }));
+    }
+  };
+
+  const cloneBattleValue = (value) =>
+    value == null ? value : JSON.parse(JSON.stringify(value));
+
+  const createBattleSnapshot = () => ({
+    turn,
+    startingPlayer,
+    currentTurnPlayer,
+    winner,
+    elapsedSeconds,
+    timerRunning,
+    gameStarted,
+    player1Name,
+    player2Name,
+    player1BaseHp,
+    player2BaseHp,
+    player1Hp,
+    player2Hp,
+    player1Em,
+    player2Em,
+    player1History: cloneBattleValue(player1History),
+    player2History: cloneBattleValue(player2History),
+    player1CombatState: cloneBattleValue(player1CombatState),
+    player2CombatState: cloneBattleValue(player2CombatState),
+    player1Secondary: cloneBattleValue(player1Secondary),
+    player2Secondary: cloneBattleValue(player2Secondary),
+    player1SecondaryTurnDisplay,
+    player2SecondaryTurnDisplay,
+    player1ActiveSlot,
+    player2ActiveSlot,
+    player1AttackModifiers: cloneBattleValue(player1AttackModifiers),
+    player2AttackModifiers: cloneBattleValue(player2AttackModifiers),
+  });
+
+  const applyBattleSnapshot = (snapshot) => {
+    if (!snapshot) return;
+
+    setTurn(snapshot.turn);
+    setStartingPlayer(snapshot.startingPlayer);
+    setCurrentTurnPlayer(snapshot.currentTurnPlayer);
+    setWinner(snapshot.winner);
+    setElapsedSeconds(snapshot.elapsedSeconds);
+    setTimerRunning(snapshot.timerRunning);
+    setGameStarted(snapshot.gameStarted);
+    setPlayer1Name(snapshot.player1Name);
+    setPlayer2Name(snapshot.player2Name);
+    setPlayer1BaseHp(snapshot.player1BaseHp);
+    setPlayer2BaseHp(snapshot.player2BaseHp);
+    setPlayer1Hp(snapshot.player1Hp);
+    setPlayer2Hp(snapshot.player2Hp);
+    setPlayer1Em(snapshot.player1Em);
+    setPlayer2Em(snapshot.player2Em);
+    setPlayer1History(snapshot.player1History || []);
+    setPlayer2History(snapshot.player2History || []);
+    setPlayer1CombatState(snapshot.player1CombatState || createCombatState());
+    setPlayer2CombatState(snapshot.player2CombatState || createCombatState());
+    setPlayer1Secondary(snapshot.player1Secondary);
+    setPlayer2Secondary(snapshot.player2Secondary);
+    setPlayer1SecondaryTurnDisplay(snapshot.player1SecondaryTurnDisplay);
+    setPlayer2SecondaryTurnDisplay(snapshot.player2SecondaryTurnDisplay);
+    setPlayer1ActiveSlot(snapshot.player1ActiveSlot || "main");
+    setPlayer2ActiveSlot(snapshot.player2ActiveSlot || "main");
+    setPlayer1AttackModifiers(snapshot.player1AttackModifiers || {});
+    setPlayer2AttackModifiers(snapshot.player2AttackModifiers || {});
+    setPlayer1MainHpFlash("");
+    setPlayer2MainHpFlash("");
+    setPlayer1SecondaryHpFlash("");
+    setPlayer2SecondaryHpFlash("");
+    setShowTargetModal(false);
+    setPendingAttack(null);
+    setSelectedAttackTargetSlot(null);
+    setShowHealTargetModal(false);
+    setPendingHealAmount(null);
+    setPendingHealPlayer(null);
+    setSelectedHealTargetSlot(null);
+    setShowAdjustHpModal(false);
+    setShowAdjustAttackModal(false);
+  };
+
+  const pushBattleHistorySnapshot = () => {
+    if (!gameStarted) return;
+    const snapshot = createBattleSnapshot();
+    setBattleUndoStack((prev) => [...prev, snapshot].slice(-10));
+    setBattleRedoStack([]);
+  };
+
+  const clearBattleHistory = () => {
+    setBattleUndoStack([]);
+    setBattleRedoStack([]);
+  };
+
+  const handleUndoBattleAction = () => {
+    if (battleUndoStack.length === 0) return;
+    const previousSnapshot = battleUndoStack[battleUndoStack.length - 1];
+    const currentSnapshot = createBattleSnapshot();
+    setBattleUndoStack((prev) => prev.slice(0, -1));
+    setBattleRedoStack((prev) => [...prev, currentSnapshot]);
+    applyBattleSnapshot(previousSnapshot);
+  };
+
+  const handleRedoBattleAction = () => {
+    if (battleRedoStack.length === 0) return;
+    const nextSnapshot = battleRedoStack[battleRedoStack.length - 1];
+    const currentSnapshot = createBattleSnapshot();
+    setBattleRedoStack((prev) => prev.slice(0, -1));
+    setBattleUndoStack((prev) => [...prev, currentSnapshot]);
+    applyBattleSnapshot(nextSnapshot);
+  };
+
+  const handleManualEmChange = (playerId, slot, delta) => {
+    const currentEm = getPlayerSlotEm(playerId, slot);
+    if (delta < 0 && currentEm <= 0) return;
+    pushBattleHistorySnapshot();
+    adjustPlayerSlotEm(playerId, slot, delta, { markPlaced: delta > 0 });
+  };
 
 useEffect(() => {
   menuMusicRef.current = new Audio("/audio/menu-theme.mp3");
@@ -3338,6 +3571,8 @@ const resetGameState = (options = {}) => {
   setPlayer2Hp(nextPlayer2Avatar.hp);
   setPlayer1Em(0);
   setPlayer2Em(0);
+  setPlayer1AttackModifiers({});
+  setPlayer2AttackModifiers({});
 
   setPlayer1History([]);
   setPlayer2History([]);
@@ -3369,6 +3604,7 @@ const resetGameState = (options = {}) => {
 
   setPlayer1ActiveSlot("main");
   setPlayer2ActiveSlot("main");
+  clearBattleHistory();
 
 };
 
@@ -3405,38 +3641,6 @@ useEffect(() => {
 
   return () => cancelAnimationFrame(winnerFrame);
 }, [gameStarted, winner, player1Hp, player2Hp, player1Name, player2Name]);
-
-  useEffect(() => {
-    let ticking = false;
-
-    const updateParallax = () => {
-      const scrollY = window.scrollY;
-      const images = document.querySelectorAll(".panel-bg-image");
-
-      images.forEach((img) => {
-        const isInactive = img.classList.contains("avatar-turn-inactive") || img.classList.contains("avatar-not-ready");
-const scale = isInactive ? 1.08 : 1.03;
-
-img.style.transform = `translateY(${scrollY * 0.30}px) scale(${scale})`;
-      });
-
-      ticking = false;
-    };
-
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(updateParallax);
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    updateParallax();
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
 
 const handleOpenSecondaryModal = (playerId) => {
   setSecondaryModalPlayer(playerId);
@@ -3550,6 +3754,7 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
     const healed = healedHp - currentHp;
 
     if (healed <= 0) return;
+    pushBattleHistorySnapshot();
 
     if (isPlayer1) {
       setPlayer1Hp(healedHp);
@@ -3568,6 +3773,7 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
     const healed = healedHp - secondary.currentHp;
 
     if (healed <= 0) return;
+    pushBattleHistorySnapshot();
 
     if (isPlayer1) {
       setPlayer1Secondary((prev) => ({
@@ -3614,7 +3820,7 @@ const closeHealTargetModal = () => {
 const handleAttackRequest = (attackerId, attack, attackerSlot) => {
   const enemyHasSecondary =
     attackerId === "player1" ? !!player2Secondary : !!player1Secondary;
-  const ownEm = attackerId === "player1" ? player1Em : player2Em;
+  const ownEm = getPlayerSlotEm(attackerId, attackerSlot);
   const attackerAvatarName =
     attackerSlot === "main"
       ? attackerId === "player1"
@@ -3711,13 +3917,16 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
   const setOwnMainHp = isPlayer1 ? setPlayer1Hp : setPlayer2Hp;
   const setEnemyMainHp = isPlayer1 ? setPlayer2Hp : setPlayer1Hp;
-  const ownEm = isPlayer1 ? player1Em : player2Em;
-  const setOwnEm = isPlayer1 ? setPlayer1Em : setPlayer2Em;
-  const enemyEm = isPlayer1 ? player2Em : player1Em;
-  const setEnemyEm = isPlayer1 ? setPlayer2Em : setPlayer1Em;
+  const ownMainEm = isPlayer1 ? player1Em : player2Em;
+  const enemyMainEm = isPlayer1 ? player2Em : player1Em;
+  const ownSecondaryEm = attackerSecondary?.currentEm ?? 0;
+  const enemySecondaryEm = enemySecondary?.currentEm ?? 0;
+  const ownActiveEm = attackerSlot === "secondary" ? ownSecondaryEm : ownMainEm;
+  const enemyAnyAvatarEm = enemyMainEm + enemySecondaryEm;
 
   const ownMainHp = isPlayer1 ? player1Hp : player2Hp;
   const enemyMainHp = isPlayer1 ? player2Hp : player1Hp;
+  const setOwnAttackModifiers = isPlayer1 ? setPlayer1AttackModifiers : setPlayer2AttackModifiers;
 
   const setOwnHistory = isPlayer1 ? setPlayer1History : setPlayer2History;
   const setEnemyHistory = isPlayer1 ? setPlayer2History : setPlayer1History;
@@ -3741,6 +3950,18 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     attackerSlot === "main"
       ? attackerMainData.name
       : attackerSecondary?.name || "Avatar Secundario";
+  const attackModifierKey = getAttackModifierKey(
+    attackerId,
+    attackerSlot,
+    ownTargetName,
+    attack.name
+  );
+  const adjustedAttackDamage = getAdjustedAttackDamage(
+    attackerId,
+    attackerSlot,
+    ownTargetName,
+    attack
+  );
 
   const enemyTargetName =
     targetSlot === "main"
@@ -3765,9 +3986,10 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       : enemySecondary?.type || "";
   const attackCost = getAttackCost(ownTargetName, attack);
 
-  if (ownEm < attackCost) return;
+  if (ownActiveEm < attackCost) return;
+  pushBattleHistorySnapshot();
 
-  let totalDamage = attack.damage;
+  let totalDamage = adjustedAttackDamage;
   let selfHeal = 0;
   let selfDamage = 0;
   let healOnSecondaryDefeat = 0;
@@ -3909,14 +4131,14 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       }
 
       case "enemy_has_more_em_than_self_bonus":
-        if (enemyEm > ownEm) {
+        if (enemyMainEm > ownMainEm) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por ventaja de EM rival: +${effect.bonusDamage} PD`);
         }
         break;
 
       case "if_enemy_has_no_em_bonus":
-        if (enemyEm <= 0) {
+        if (enemyMainEm <= 0) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por rival sin EM: +${effect.bonusDamage} PD`);
         }
@@ -4008,7 +4230,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         break;
 
       case "if_enemy_has_energy_or_chance_bonus_and_heal":
-        if (enemyEm > 0) {
+        if (enemyAnyAvatarEm > 0) {
           totalDamage += effect.bonusDamage || 0;
           selfHeal += effect.heal || 0;
           if (effect.bonusDamage) {
@@ -4021,9 +4243,13 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         break;
 
       case "remove_enemy_em": {
-        const amountToRemove = Math.min(enemyEm, effect.amount || 0);
+        const amountToRemove = Math.min(enemyMainEm, effect.amount || 0);
         if (amountToRemove > 0) {
-          setEnemyEm((prev) => Math.max(0, prev - amountToRemove));
+          if (isPlayer1) {
+            setPlayer2Em((prev) => Math.max(0, prev - amountToRemove));
+          } else {
+            setPlayer1Em((prev) => Math.max(0, prev - amountToRemove));
+          }
           notes.push(`El rival pierde ${amountToRemove} EM`);
         }
         break;
@@ -4031,7 +4257,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
       case "gain_self_em":
         if ((effect.amount || 0) > 0) {
-          setOwnEm((prev) => prev + (effect.amount || 0));
+          adjustPlayerSlotEm(attackerId, attackerSlot, effect.amount || 0);
           notes.push(`Recupera +${effect.amount} EM`);
         }
         break;
@@ -4198,9 +4424,16 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   }
 
   if (attackCost > 0) {
-    setOwnEm((prev) => Math.max(0, prev - attackCost));
+    adjustPlayerSlotEm(attackerId, attackerSlot, -attackCost);
     notes.push(`-${attackCost} EM`);
   }
+
+  setOwnAttackModifiers((prev) => {
+    if (!prev[attackModifierKey]) return prev;
+    const next = { ...prev };
+    delete next[attackModifierKey];
+    return next;
+  });
 
   if (attackerSlot === "main") {
     setOwnCombatState((prev) => {
@@ -4245,10 +4478,12 @@ const handleConfirmSecondarySummon = () => {
 
   const avatar = getSecondaryAvatarData(selectedSecondaryId);
   if (!avatar) return;
+  pushBattleHistorySnapshot();
 
   const summonedAvatar = {
     ...avatar,
     currentHp: Math.floor(avatar.hp / 2),
+    currentEm: 0,
     maxHp: avatar.hp,
     turnsRemaining: avatar.turnsDuration,
     attackCount: 0,
@@ -4394,6 +4629,7 @@ const handleStartMatch = () => {
   setShowStartMatchModal(false);
   setElapsedSeconds(0);
   setTimerRunning(true);
+  clearBattleHistory();
 };
 
 const handleBackFromStartModal = () => {
@@ -4517,6 +4753,7 @@ const handlePassTurn = (playerId) => {
   };
 
   if (startingPlayer === null) {
+    pushBattleHistorySnapshot();
     const otherPlayer = playerId === "player1" ? "player2" : "player1";
     closeOwnTurnState(playerId);
     applyPoisonTick(playerId);
@@ -4528,6 +4765,7 @@ const handlePassTurn = (playerId) => {
 
   if (currentTurnPlayer !== playerId) return;
 
+  pushBattleHistorySnapshot();
   closeOwnTurnState(playerId);
   applyPoisonTick(playerId);
   decrementSecondaryTurns(playerId);
@@ -4554,10 +4792,179 @@ const handleRequestAdjustHp = (playerId, slot = "main") => {
   setShowAdjustHpModal(true);
 };
 
+const getAdjustedAttackDamage = (playerId, slot, avatarName, attack) => {
+  if (!attack) return 0;
+  const modifiers = playerId === "player1" ? player1AttackModifiers : player2AttackModifiers;
+  const key = getAttackModifierKey(playerId, slot, avatarName, attack.name);
+  return Math.max(0, (attack.damage || 0) + (modifiers[key] || 0));
+};
+
+const getAdjustAttackOperator = () => (adjustAttackMode === "+" ? "+" : "-");
+
+const getAdjustAttackComputedAmount = () => {
+  const operator = getAdjustAttackOperator();
+  const rawValue = String(adjustAttackValue || "");
+  const cleanedValue =
+    operator === "+"
+      ? rawValue.replace(/[^0-9+]/g, "")
+      : rawValue.replace(/[^0-9-]/g, "");
+
+  if (!cleanedValue) return 0;
+
+  return cleanedValue
+    .split(operator)
+    .filter(Boolean)
+    .reduce((total, part) => total + (Number.parseInt(part, 10) || 0), 0);
+};
+
+const getPreviewAdjustedAttackDamage = () => {
+  if (!adjustAttackPlayer || !adjustAttackName || !adjustAttackAvatarName) {
+    return adjustAttackBaseDamage || 0;
+  }
+
+  const modifiers =
+    adjustAttackPlayer === "player1" ? player1AttackModifiers : player2AttackModifiers;
+  const key = getAttackModifierKey(
+    adjustAttackPlayer,
+    adjustAttackSlot,
+    adjustAttackAvatarName,
+    adjustAttackName
+  );
+  const currentValue = modifiers[key] || 0;
+  const amount = getAdjustAttackComputedAmount();
+  const nextModifier =
+    adjustAttackMode === "+"
+      ? currentValue + amount
+      : Math.max(-adjustAttackBaseDamage, currentValue - amount);
+
+  return Math.max(0, (adjustAttackBaseDamage || 0) + nextModifier);
+};
+
+const handleRequestAdjustAttack = (playerId, attack, slot = "main", avatarName = "") => {
+  if (!attack) return;
+  setAdjustAttackPlayer(playerId);
+  setAdjustAttackSlot(slot);
+  setAdjustAttackAvatarName(avatarName);
+  setAdjustAttackName(attack.name);
+  setAdjustAttackBaseDamage(attack.damage || 0);
+  setAdjustAttackMode("+");
+  setAdjustAttackValue("");
+  setShowAdjustAttackModal(true);
+};
+
+const handleApplyAdjustAttack = () => {
+  const amount = getAdjustAttackComputedAmount();
+  if (!amount || amount <= 0 || !adjustAttackPlayer || !adjustAttackName || !adjustAttackAvatarName) return;
+  stopAdjustAttackClearHold();
+  attackAdjustClearTriggeredRef.current = false;
+  pushBattleHistorySnapshot();
+
+  const setModifiers =
+    adjustAttackPlayer === "player1" ? setPlayer1AttackModifiers : setPlayer2AttackModifiers;
+  const setHistory = adjustAttackPlayer === "player1" ? setPlayer1History : setPlayer2History;
+  const key = getAttackModifierKey(
+    adjustAttackPlayer,
+    adjustAttackSlot,
+    adjustAttackAvatarName,
+    adjustAttackName
+  );
+
+  setModifiers((prev) => {
+    const currentValue = prev[key] || 0;
+    const nextValue =
+      adjustAttackMode === "+"
+        ? currentValue + amount
+        : Math.max(-adjustAttackBaseDamage, currentValue - amount);
+
+    return {
+      ...prev,
+      [key]: nextValue,
+    };
+  });
+
+  setHistory((prev) => [
+    `Ajuste manual a ${adjustAttackName}: ${adjustAttackMode}${amount} PD`,
+    ...prev.slice(0, 5),
+  ]);
+
+  setShowAdjustAttackModal(false);
+  setAdjustAttackPlayer(null);
+  setAdjustAttackSlot("main");
+  setAdjustAttackAvatarName("");
+  setAdjustAttackName("");
+  setAdjustAttackBaseDamage(0);
+  setAdjustAttackMode("+");
+  setAdjustAttackValue("");
+};
+
+const handleCloseAdjustAttack = () => {
+  stopAdjustAttackClearHold();
+  attackAdjustClearTriggeredRef.current = false;
+  setShowAdjustAttackModal(false);
+  setAdjustAttackPlayer(null);
+  setAdjustAttackSlot("main");
+  setAdjustAttackAvatarName("");
+  setAdjustAttackName("");
+  setAdjustAttackBaseDamage(0);
+  setAdjustAttackMode("+");
+  setAdjustAttackValue("");
+};
+
+const handleAdjustAttackDigit = (digit) => {
+  setAdjustAttackValue((prev) => {
+    const current = String(prev || "");
+    if (current === "0") return String(digit);
+    return `${current}${digit}`;
+  });
+};
+
+const handleAdjustAttackOperator = () => {
+  const operator = getAdjustAttackOperator();
+  setAdjustAttackValue((prev) => {
+    const current = String(prev || "");
+    if (!/\d$/.test(current)) return current;
+    return `${current}${operator}`;
+  });
+};
+
+const handleAdjustAttackBackspace = () => {
+  if (attackAdjustClearTriggeredRef.current) {
+    attackAdjustClearTriggeredRef.current = false;
+    return;
+  }
+
+  setAdjustAttackValue((prev) => String(prev || "").slice(0, -1));
+};
+
+const handleClearAdjustAttackValue = () => {
+  setAdjustAttackValue("");
+};
+
+const startAdjustAttackClearHold = () => {
+  if (attackAdjustClearHoldRef.current) {
+    clearTimeout(attackAdjustClearHoldRef.current);
+  }
+
+  attackAdjustClearTriggeredRef.current = false;
+  attackAdjustClearHoldRef.current = setTimeout(() => {
+    attackAdjustClearTriggeredRef.current = true;
+    handleClearAdjustAttackValue();
+    attackAdjustClearHoldRef.current = null;
+  }, 450);
+};
+
+const stopAdjustAttackClearHold = () => {
+  if (attackAdjustClearHoldRef.current) {
+    clearTimeout(attackAdjustClearHoldRef.current);
+    attackAdjustClearHoldRef.current = null;
+  }
+};
+
 const handleApplyAdjustHp = () => {
-  const amount = Number(adjustValue);
+  const amount = Number.parseInt(String(adjustValue).trim(), 10);
 
   if (!amount || amount <= 0 || !adjustTargetPlayer) return;
+  pushBattleHistorySnapshot();
 
   if (adjustTargetPlayer === "player1") {
     if (adjustTargetSlot === "secondary" && player1Secondary) {
@@ -4689,7 +5096,13 @@ const handleApplyAdjustHp = () => {
     }
   }
 
+  setHpSyncRequest({
+    playerId: adjustTargetPlayer,
+    slot: adjustTargetSlot,
+    tick: Date.now(),
+  });
   setShowAdjustHpModal(false);
+  setShowAdjustAttackModal(false);
   setAdjustTargetPlayer(null);
   setAdjustTargetSlot("main");
   setAdjustValue("");
@@ -4703,6 +5116,8 @@ const handleCloseAdjustHp = () => {
 };
 
 const handleConfirmResetHp = () => {
+  if (!resetTargetPlayer) return;
+  pushBattleHistorySnapshot();
   if (resetTargetPlayer === "player1") {
     setPlayer1Hp(player1BaseHp);
     setPlayer1History((prev) => [`Reinicio a ${player1BaseHp} PV`, ...prev.slice(0, 5)]);
@@ -4775,7 +5190,31 @@ const formattedTime =
           </div>
 
           <div className="turn-right">
-            
+            {gameStarted && (
+              <div className="battle-action-nav">
+                <button
+                  className="battle-action-nav-btn"
+                  type="button"
+                  aria-label="Retroceder acción"
+                  title="Retroceder acción"
+                  onClick={handleUndoBattleAction}
+                  disabled={battleUndoStack.length === 0}
+                >
+                  <img src="/ui/undo-icon.png" alt="Deshacer" className="battle-action-nav-icon" />
+                </button>
+                <button
+                  className="battle-action-nav-btn"
+                  type="button"
+                  aria-label="Avanzar acción"
+                  title="Avanzar acción"
+                  onClick={handleRedoBattleAction}
+                  disabled={battleRedoStack.length === 0}
+                >
+                  <img src="/ui/redo-icon.png" alt="Rehacer" className="battle-action-nav-icon" />
+                </button>
+              </div>
+            )}
+
             <button
               className="restart-btn icon-restart-btn"
               onClick={() => setShowRestartConfirm(true)}
@@ -5213,8 +5652,106 @@ const formattedTime =
                 </button>
               </div>
             </div>
-          </div>
-        )}
+  </div>
+)}
+
+{showAdjustAttackModal && (
+  <div className="adjust-overlay" onClick={handleCloseAdjustAttack}>
+    <div
+      className="adjust-modal attack-adjust-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3>
+        Ajustar PD de {adjustAttackName}
+      </h3>
+
+      <div className="attack-adjust-current-damage">
+        {getPreviewAdjustedAttackDamage()}{" "}
+        <span>PD</span>
+      </div>
+
+      <div className="adjust-mode-row">
+        <button
+          className={`mode-btn sum-btn ${adjustAttackMode === "+" ? "active" : ""}`}
+          onClick={() => {
+            setAdjustAttackMode("+");
+            setAdjustAttackValue("");
+          }}
+        >
+          + PD
+        </button>
+        <button
+          className={`mode-btn rest-btn ${adjustAttackMode === "-" ? "active" : ""}`}
+          onClick={() => {
+            setAdjustAttackMode("-");
+            setAdjustAttackValue("");
+          }}
+        >
+          - PD
+        </button>
+      </div>
+
+      <input
+        className="adjust-input attack-adjust-input"
+        type="text"
+        inputMode="none"
+        readOnly
+        placeholder="Cantidad"
+        value={adjustAttackValue}
+        onClick={handleClearAdjustAttackValue}
+      />
+
+      <div className="attack-adjust-keypad">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+          <button
+            key={digit}
+            type="button"
+            className="attack-adjust-key"
+            onClick={() => handleAdjustAttackDigit(digit)}
+          >
+            {digit}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="attack-adjust-key attack-adjust-key-symbol"
+          onClick={handleAdjustAttackOperator}
+        >
+          {adjustAttackMode}
+        </button>
+        <button
+          type="button"
+          className="attack-adjust-key"
+          onClick={() => handleAdjustAttackDigit(0)}
+        >
+          0
+        </button>
+        <button
+          type="button"
+          className="attack-adjust-key attack-adjust-key-backspace"
+          onClick={handleAdjustAttackBackspace}
+          onMouseDown={startAdjustAttackClearHold}
+          onMouseUp={stopAdjustAttackClearHold}
+          onMouseLeave={stopAdjustAttackClearHold}
+          onTouchStart={startAdjustAttackClearHold}
+          onTouchEnd={stopAdjustAttackClearHold}
+          onTouchCancel={stopAdjustAttackClearHold}
+        >
+          {"\u2190"}
+        </button>
+      </div>
+
+      <div className="attack-adjust-divider" />
+
+      <button
+        className={`apply-btn ${adjustAttackMode === "+" ? "apply-sum" : "apply-rest"}`}
+        onClick={handleApplyAdjustAttack}
+      >
+        APLICAR AJUSTE
+      </button>
+    </div>
+  </div>
+)}
 
         {showRestartConfirm && (
           <div className="restart-confirm-overlay">
@@ -5269,6 +5806,7 @@ const formattedTime =
 
         <div className="app">
           <PlayerPanel
+            panelPlayerId="player1"
             playerLabel="PV"
             name={player1Name}
             setName={setPlayer1Name}
@@ -5310,15 +5848,16 @@ const formattedTime =
               handleAttackRequest("player1", attack, attackerSlot)
             }
             onHealRequest={(amount) => handleHealRequest("player1", amount)}
+            onRequestAdjustAttack={(attack, slot, avatarName) =>
+              handleRequestAdjustAttack("player1", attack, slot, avatarName)
+            }
+            getAdjustedAttackDamage={(slot, avatarName, attack) =>
+              getAdjustedAttackDamage("player1", slot, avatarName, attack)
+            }
             ownEm={player1Em}
-            onIncreaseEm={() => {
-              setPlayer1Em((prev) => prev + 1);
-              setPlayer1CombatState((prev) => ({
-                ...prev,
-                currentTurnEmPlaced: true,
-              }));
-            }}
-            onDecreaseEm={() => setPlayer1Em((prev) => Math.max(0, prev - 1))}
+            hpSyncRequest={hpSyncRequest}
+            onIncreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, 1)}
+            onDecreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
             rouletteIndex={roulettePlayer1Index}
           />
@@ -5338,6 +5877,7 @@ const formattedTime =
           )}
 
           <PlayerPanel
+            panelPlayerId="player2"
             playerLabel="PV"
             name={player2Name}
             setName={setPlayer2Name}
@@ -5379,15 +5919,16 @@ const formattedTime =
               handleAttackRequest("player2", attack, attackerSlot)
             }
             onHealRequest={(amount) => handleHealRequest("player2", amount)}
+            onRequestAdjustAttack={(attack, slot, avatarName) =>
+              handleRequestAdjustAttack("player2", attack, slot, avatarName)
+            }
+            getAdjustedAttackDamage={(slot, avatarName, attack) =>
+              getAdjustedAttackDamage("player2", slot, avatarName, attack)
+            }
             ownEm={player2Em}
-            onIncreaseEm={() => {
-              setPlayer2Em((prev) => prev + 1);
-              setPlayer2CombatState((prev) => ({
-                ...prev,
-                currentTurnEmPlaced: true,
-              }));
-            }}
-            onDecreaseEm={() => setPlayer2Em((prev) => Math.max(0, prev - 1))}
+            hpSyncRequest={hpSyncRequest}
+            onIncreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, 1)}
+            onDecreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
             rouletteIndex={roulettePlayer2Index}
           />  
