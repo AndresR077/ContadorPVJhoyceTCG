@@ -447,7 +447,7 @@ const SECONDARY_AVATARS = [
     name: "Hella Mogarth",
     hp: 820,
     summonCardName: "Báculo de las Almas Caídas",
-    image: "/secondary/Hella.png",
+    image: "/secondary/Hella.jpg",
     summonImage: "/secondary/INV - Báculo de las Almas Caídas.png",
     type: "Oscuro / Demoniaco",
     typeIcon: "/types/oscuro-demoniaco.png",
@@ -491,7 +491,7 @@ const SECONDARY_AVATARS = [
     name: "Medusa",
     hp: 800,
     summonCardName: "Mirada de Medusa",
-    image: "/secondary/Medusa.png",
+    image: "/secondary/Medusa.jpg",
     summonImage: "/secondary/INV - Mirada de Medusa.png",
     type: "Mítico",
     typeIcon: "/types/mitico.png",
@@ -524,7 +524,7 @@ const SECONDARY_AVATARS = [
     name: "Prismara",
     hp: 830,
     summonCardName: "Llamado de Guerra Celestial",
-    image: "/secondary/Prismara.png",
+    image: "/secondary/Prismara.jpg",
     summonImage: "/secondary/INV - Llamado de Guerra Celestial.png",
     type: "Luz / Celestial",
     typeIcon: "/types/luz-celestial.png",
@@ -559,7 +559,7 @@ const SECONDARY_AVATARS = [
     name: "Valdrea Noir",
     hp: 800,
     summonCardName: "Sangre y Alas Liberadas",
-    image: "/secondary/Valdrea.png",
+    image: "/secondary/Valdrea.jpg",
     summonImage: "/secondary/INV - Sangre y Alas Liberadas.png",
     type: "Mítico",
     typeIcon: "/types/mitico.png",
@@ -594,7 +594,7 @@ const SECONDARY_AVATARS = [
     name: "Karessa Dránn",
     hp: 850,
     summonCardName: "Furia de Yelmo Dránnico",
-    image: "/secondary/Karessa.png",
+    image: "/secondary/Karessa.jpg",
     summonImage: "/secondary/INV - Furia de Yelmo Dránnico.png",
     type: "Multiversal",
     typeIcon: "/types/multiversal.png",
@@ -626,7 +626,7 @@ const SECONDARY_AVATARS = [
     name: "Necrondra",
     hp: 850,
     summonCardName: "Ritual de la Biblioteca Negra",
-    image: "/secondary/Necrondra.png",
+    image: "/secondary/Necrondra.jpg",
     summonImage: "/secondary/INV - Ritual de la Biblioteca Negra.png",
     type: "Mágico",
     typeIcon: "/types/magico.png",
@@ -1375,6 +1375,8 @@ function PlayerPanel({
   const [showInactiveTypeIconColor, setShowInactiveTypeIconColor] = useState(false);
   const [activationEffect, setActivationEffect] = useState(false);
   const [isSecondaryPanelSwitching, setIsSecondaryPanelSwitching] = useState(false);
+  const [showAvatarCardModal, setShowAvatarCardModal] = useState(false);
+  const [isBattleAvatarCardFlipped, setIsBattleAvatarCardFlipped] = useState(false);
   const [displayedMainHp, setDisplayedMainHp] = useState(hp);
   const [displayedSecondaryHp, setDisplayedSecondaryHp] = useState(
     secondaryAvatar?.currentHp ?? 0
@@ -1417,6 +1419,7 @@ const activeAvatar =
         bgPosition: "center top",
       }
     : mainAvatarView;
+const activeAvatarCardImage = getAvatarCardImage(activeAvatar.name) ?? activeAvatar.image;
 
 const isSecondaryActive = activeSlot === "secondary" && !!secondaryAvatar;
 const activeAttacks = activeAvatar.attacks || [];
@@ -1603,6 +1606,10 @@ useEffect(() => {
 }, [isTurnActive, activeAvatar.name]);
 
 useEffect(() => {
+  setIsBattleAvatarCardFlipped(false);
+}, [showAvatarCardModal, activeAvatar.name]);
+
+useEffect(() => {
   return () => {
     if (switchSlotTimeoutRef.current) clearTimeout(switchSlotTimeoutRef.current);
     if (switchPanelTimeoutRef.current) clearTimeout(switchPanelTimeoutRef.current);
@@ -1707,6 +1714,7 @@ const handleToggleActiveAvatar = () => {
 };
 
 return (
+<>
 <div className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""}`}>
   <div className="panel-bg">
     <img
@@ -1746,7 +1754,7 @@ return (
 <div className="avatar-header">
   <div className={`avatar-name-area ${isSecondaryActive ? "secondary-active" : ""}`}>
     <select
-      className="name-select"
+      className={`name-select ${gameStarted ? "battle-card-icon-active" : ""}`}
       value={name}
       disabled={gameStarted || isConfirmed}
       onChange={(e) => handleAvatarChange(e.target.value)}
@@ -1762,6 +1770,22 @@ return (
       <div className="active-secondary-name">
         {activeAvatar.name}
       </div>
+    )}
+
+    {gameStarted && (
+      <button
+        type="button"
+        className="avatar-card-preview-btn"
+        onClick={() => setShowAvatarCardModal(true)}
+        aria-label={`Ver carta de ${activeAvatar.name}`}
+        title={`Ver carta de ${activeAvatar.name}`}
+      >
+        <img
+          src="/ui/summon-card-icon.png"
+          alt=""
+          className="avatar-card-preview-icon"
+        />
+      </button>
     )}
   </div>
 
@@ -2061,8 +2085,48 @@ return (
           </ul>
         )}
       </div>
+  </div>
+</div>
+{showAvatarCardModal && (
+  <div
+    className="battle-avatar-card-overlay"
+    onClick={() => setShowAvatarCardModal(false)}
+  >
+    <div
+      className="battle-avatar-card-modal"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="battle-avatar-card-flip-scene"
+        onClick={() => setIsBattleAvatarCardFlipped((prev) => !prev)}
+        aria-label={`Girar carta de ${activeAvatar.name}`}
+      >
+        <div
+          className={`battle-avatar-card-flip-inner ${
+            isBattleAvatarCardFlipped ? "flipped" : ""
+          }`}
+        >
+          <div className="battle-avatar-card-flip-face battle-avatar-card-flip-front">
+            <img
+              src={activeAvatarCardImage}
+              alt={activeAvatar.name}
+              className="battle-avatar-card-image"
+            />
+          </div>
+          <div className="battle-avatar-card-flip-face battle-avatar-card-flip-back">
+            <img
+              src="/ui/Dorso.png"
+              alt="Dorso de carta"
+              className="battle-avatar-card-image"
+            />
+          </div>
+        </div>
+      </button>
     </div>
   </div>
+)}
+</>
 );
 }
 
@@ -3411,7 +3475,7 @@ export default function App() {
   const pushBattleHistorySnapshot = () => {
     if (!gameStarted) return;
     const snapshot = createBattleSnapshot();
-    setBattleUndoStack((prev) => [...prev, snapshot].slice(-10));
+    setBattleUndoStack((prev) => [...prev, snapshot].slice(-5));
     setBattleRedoStack([]);
   };
 

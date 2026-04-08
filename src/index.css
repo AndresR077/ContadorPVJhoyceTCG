@@ -317,7 +317,7 @@ body {
     0 0 0 1px rgba(255, 92, 92, 0.22),
     0 0 22px rgba(255, 92, 92, 0.28),
     inset 0 0 28px rgba(255, 92, 92, 0.1);
-  animation: battleBorderPulseRed 3.4s ease-in-out infinite;
+  opacity: 0.62;
 }
 
 .player-panel.turn-active.right-side .panel-bg::after {
@@ -331,49 +331,7 @@ body {
     0 0 0 1px rgba(113, 231, 255, 0.2),
     0 0 22px rgba(113, 231, 255, 0.24),
     inset 0 0 28px rgba(113, 231, 255, 0.09);
-  animation: battleBorderPulseBlue 3.4s ease-in-out infinite;
-}
-
-@keyframes battleBorderPulseRed {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.998);
-    box-shadow:
-      0 0 0 1px rgba(255, 92, 92, 0.24),
-      0 0 16px rgba(255, 92, 92, 0.18),
-      inset 0 0 20px rgba(255, 92, 92, 0.08);
-  }
-
-  50% {
-    opacity: 0.78;
-    transform: scale(1);
-    box-shadow:
-      0 0 0 1px rgba(255, 92, 92, 0.38),
-      0 0 34px rgba(255, 92, 92, 0.34),
-      inset 0 0 34px rgba(255, 92, 92, 0.15);
-  }
-}
-
-@keyframes battleBorderPulseBlue {
-  0%,
-  100% {
-    opacity: 0.38;
-    transform: scale(0.998);
-    box-shadow:
-      0 0 0 1px rgba(113, 231, 255, 0.22),
-      0 0 16px rgba(113, 231, 255, 0.16),
-      inset 0 0 20px rgba(113, 231, 255, 0.07);
-  }
-
-  50% {
-    opacity: 0.76;
-    transform: scale(1);
-    box-shadow:
-      0 0 0 1px rgba(113, 231, 255, 0.34),
-      0 0 34px rgba(113, 231, 255, 0.3),
-      inset 0 0 34px rgba(113, 231, 255, 0.13);
-  }
+  opacity: 0.6;
 }
 
 .panel-content {
@@ -950,45 +908,17 @@ body {
 }
 
 .attack-btn.attack-ready-pulse-blue {
-  animation: attackReadyPulseBlue 3.4s ease-in-out infinite;
+  background: rgba(113, 231, 255, 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(113, 231, 255, 0.34),
+    0 0 18px rgba(113, 231, 255, 0.18);
 }
 
 .attack-btn.attack-ready-pulse-red {
-  animation: attackReadyPulseRed 3.4s ease-in-out infinite;
-}
-
-@keyframes attackReadyPulseBlue {
-  0%,
-  100% {
-    box-shadow:
-      inset 0 0 0 1px rgba(113, 231, 255, 0.26),
-      0 0 12px rgba(113, 231, 255, 0.12),
-      0 0 0 0 rgba(113, 231, 255, 0.02);
-  }
-
-  50% {
-    box-shadow:
-      inset 0 0 0 1px rgba(113, 231, 255, 0.42),
-      0 0 24px rgba(113, 231, 255, 0.26),
-      0 0 36px rgba(113, 231, 255, 0.12);
-  }
-}
-
-@keyframes attackReadyPulseRed {
-  0%,
-  100% {
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 92, 92, 0.28),
-      0 0 12px rgba(255, 92, 92, 0.12),
-      0 0 0 0 rgba(255, 92, 92, 0.02);
-  }
-
-  50% {
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 92, 92, 0.44),
-      0 0 24px rgba(255, 92, 92, 0.26),
-      0 0 36px rgba(255, 92, 92, 0.12);
-  }
+  background: rgba(255, 92, 92, 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 92, 92, 0.34),
+    0 0 18px rgba(255, 92, 92, 0.18);
 }
 
 .attack-name {
@@ -4304,10 +4234,49 @@ body {
   min-width: 0;
 }
 
+.avatar-card-preview-btn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 58px;
+  height: 58px;
+  border: none;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.11);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.avatar-card-preview-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.avatar-card-preview-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  display: block;
+}
+
 .name-select,
 .active-secondary-name {
   width: 100%;
   box-sizing: border-box;
+  padding-right: 86px;
+}
+
+.name-select.battle-card-icon-active {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
 }
 
 .active-secondary-name {
@@ -4447,4 +4416,75 @@ body {
   inset: 0;
   background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 45%);
   pointer-events: none;
+}
+
+.battle-avatar-card-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.battle-avatar-card-modal {
+  width: min(460px, 88vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.battle-avatar-card-flip-scene {
+  width: 100%;
+  max-width: 430px;
+  aspect-ratio: 753 / 1089;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  perspective: 1600px;
+  filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.45));
+}
+
+.battle-avatar-card-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.76s ease;
+}
+
+.battle-avatar-card-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.battle-avatar-card-flip-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.46);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.battle-avatar-card-flip-front {
+  transform: rotateY(0deg);
+}
+
+.battle-avatar-card-flip-back {
+  transform: rotateY(180deg);
+}
+
+.battle-avatar-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
