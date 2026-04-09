@@ -1368,10 +1368,12 @@ function PlayerPanel({
   getAdjustedAttackDamage,
   bgClass,
   hpSyncRequest,
+  mainHpPopup,
+  secondaryHpPopup,
 }) {
   
   const avatarData = getAvatarData(name);
-  const healOptions = [100, 80, 40, 10];
+  const healOptions = [5, 10, 20, 50, 80];
   const isLeftSide = bgClass === "left-side";
 
   const [showTypeInfo, setShowTypeInfo] = useState(false);
@@ -1466,7 +1468,9 @@ const isAttackBlocked =
 
 const renderEnergyControl = () => (
   <div
-    className={`em-control-stack ${isLeftSide ? "em-control-red" : "em-control-cyan"}`}
+    className={`em-control-stack ${isLeftSide ? "em-control-red" : "em-control-cyan"} ${
+      !gameStarted || gameOver || !isTurnActive ? "em-control-inactive" : ""
+    }`}
     style={{
       display: "flex",
       flexDirection: "column",
@@ -1635,14 +1639,11 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  const mainHpAnimationFrame = mainHpAnimationRef.current;
-  const secondaryHpAnimationFrame = secondaryHpAnimationRef.current;
-
   return () => {
-    if (mainHpAnimationFrame) cancelAnimationFrame(mainHpAnimationFrame);
-    if (secondaryHpAnimationFrame) cancelAnimationFrame(secondaryHpAnimationFrame);
+    if (mainHpAnimationRef.current) cancelAnimationFrame(mainHpAnimationRef.current);
+    if (secondaryHpAnimationRef.current) cancelAnimationFrame(secondaryHpAnimationRef.current);
   };
-}, [displayedMainHp, displayedSecondaryHp, hp, name, secondaryAvatar?.id, secondaryAvatar?.currentHp]);
+}, []);
 
 useEffect(() => {
   if (previousMainNameRef.current !== name) {
@@ -1734,7 +1735,7 @@ const handleToggleActiveAvatar = () => {
 return (
 <>
 <div className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""}`}>
-  <div className="panel-bg">
+  <div className={`panel-bg ${activeHpFlash === "damage" ? "panel-bg-hit-dark" : ""}`}>
     <img
   key={activeAvatar.image}
   src={activeAvatar.image}
@@ -1751,6 +1752,8 @@ return (
     rouletteRevealActive ? "panel-bg-image-roulette-reveal" : ""
   } ${
     isSecondaryPanelSwitching ? "panel-bg-image-switching" : ""
+  } ${
+    activeHpFlash === "damage" ? "panel-bg-image-damage-impact" : ""
   }`}
   style={{
   objectFit: activeAvatar.bgFit || "cover",
@@ -1904,11 +1907,17 @@ return (
       }`}
       onClick={handleToggleActiveAvatar}
     >
-      <div className="secondary-large-panel-image-wrap">
+      <div
+        className={`secondary-large-panel-image-wrap ${
+          secondaryPanelHpFlash === "damage" ? "secondary-large-panel-hit-dark" : ""
+        }`}
+      >
         <img
           src={isSecondaryActive ? avatarData.image : secondaryAvatar.image}
           alt={isSecondaryActive ? avatarData.name : secondaryAvatar.name}
-          className="secondary-large-panel-image"
+          className={`secondary-large-panel-image ${
+            secondaryPanelHpFlash === "damage" ? "secondary-large-panel-image-damage-impact" : ""
+          }`}
         />
         <div className="secondary-large-panel-image-overlay" />
       </div>
@@ -1929,6 +1938,14 @@ return (
         >
           {secondaryPanelDisplayedHp} PV
         </span>
+        {secondaryHpPopup && (
+          <div
+            key={secondaryHpPopup.tick}
+            className={`hp-float-popup hp-float-popup-secondary hp-float-${secondaryHpPopup.kind}`}
+          >
+            {secondaryHpPopup.text}
+          </div>
+        )}
       </div>
     </button>
   </div>
@@ -1972,6 +1989,14 @@ return (
   )}
 
   <div className="hp-center-display single-line-hp">
+    {mainHpPopup && (
+      <div
+        key={mainHpPopup.tick}
+        className={`hp-float-popup hp-float-popup-main hp-float-${mainHpPopup.kind}`}
+      >
+        {mainHpPopup.text}
+      </div>
+    )}
     <span className={`hp-number ${activeHpFlash ? `hp-flash-${activeHpFlash}` : ""}`}>
     {activeDisplayedHp}
     </span>
@@ -2079,17 +2104,17 @@ return (
       </div>
 
       <div className={`buttons-salud ${!isLeftSide ? "buttons-salud-right" : ""}`}>
-  {healOptions.map((amount) => (
-    <button
-      key={amount}
-      className="heal-btn"
-      onClick={() => onHealRequest(amount)}
-      disabled={!canUseHealButtons}
-    >
-      +{amount} PV
-    </button>
-  ))}
-</div>
+        {healOptions.map((amount) => (
+          <button
+            key={amount}
+            className={`heal-btn ${amount === 80 ? "heal-btn-violet" : ""}`}
+            onClick={() => onHealRequest(amount)}
+            disabled={!canUseHealButtons}
+          >
+            +{amount} PV
+          </button>
+        ))}
+      </div>
 
       <div className="manual-adjust-row">
         <button
@@ -2158,10 +2183,21 @@ return (
 );
 }
 
-function HomeScreen({ onStartBattle, onGoLibrary, onGoAvatars }) {
+function HomeScreen({
+  onStartBattle,
+  onGoLibrary,
+  onGoAvatars,
+  onLoadSavedBattle,
+  onDeleteSavedBattle,
+  savedBattleSlots,
+}) {
   const [selectedHomeAction, setSelectedHomeAction] = useState(null);
   const [isLaunchingBattle, setIsLaunchingBattle] = useState(false);
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
+  const [showLoadBattleModal, setShowLoadBattleModal] = useState(false);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedDeleteSlot, setSelectedDeleteSlot] = useState(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const battleLaunchTimeoutRef = useRef(null);
   const bgIntervalRef = useRef(null);
 
@@ -2225,6 +2261,31 @@ function HomeScreen({ onStartBattle, onGoLibrary, onGoAvatars }) {
     setSelectedHomeAction(action.id);
   };
 
+  const hasSavedBattles = savedBattleSlots.some(Boolean);
+
+  const formatSlotSavedAt = (savedAt) => {
+    if (!savedAt) return "";
+
+    try {
+      return new Date(savedAt).toLocaleString("es-EC", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  const closeLoadBattleModal = () => {
+    setShowLoadBattleModal(false);
+    setIsDeleteMode(false);
+    setSelectedDeleteSlot(null);
+    setShowDeleteConfirmModal(false);
+  };
+
   return (
     <div className={`home-screen ${isLaunchingBattle ? "home-screen-launching" : ""}`}>
       {/* Background images carousel */}
@@ -2244,7 +2305,44 @@ function HomeScreen({ onStartBattle, onGoLibrary, onGoAvatars }) {
 
       <div className="home-main">
         <div className="home-buttons">
-          {homeActions.map((action) => {
+          <div className="home-action-stack">
+            {homeActions
+              .filter((action) => action.id === "battle")
+              .map((action) => {
+                const isSelected = selectedHomeAction === action.id;
+
+                return (
+                  <button
+                    key={action.id}
+                    type="button"
+                    className={`home-menu-card ${action.id} ${isSelected ? "active" : ""}`}
+                    onClick={() => handleHomeActionClick(action)}
+                  >
+                    <span className="home-menu-card-label">{action.label}</span>
+                  </button>
+                );
+              })}
+
+            <button
+              type="button"
+              className={`home-load-card ${hasSavedBattles ? "has-saves" : ""}`}
+              onClick={() => {
+                closeLoadBattleModal();
+                setShowLoadBattleModal(true);
+              }}
+            >
+              <span className="home-load-card-label">Cargar Partida</span>
+              <span className="home-load-card-subtitle">
+                {hasSavedBattles
+                  ? `${savedBattleSlots.filter(Boolean).length} slot(s) disponible(s)`
+                  : "No hay partidas guardadas"}
+              </span>
+            </button>
+          </div>
+
+          {homeActions
+            .filter((action) => action.id !== "battle")
+            .map((action) => {
             const isSelected = selectedHomeAction === action.id;
 
             return (
@@ -2270,6 +2368,147 @@ function HomeScreen({ onStartBattle, onGoLibrary, onGoAvatars }) {
           className="home-battle-transition-logo"
         />
       </div>
+
+      {showLoadBattleModal && (
+        <div
+          className="home-load-overlay"
+          onClick={closeLoadBattleModal}
+        >
+          <div
+            className="home-load-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={`home-load-trash-toggle ${isDeleteMode ? "active" : ""}`}
+              disabled={!hasSavedBattles}
+              onClick={() => {
+                setIsDeleteMode((prev) => !prev);
+                setSelectedDeleteSlot(null);
+                setShowDeleteConfirmModal(false);
+              }}
+              aria-label={isDeleteMode ? "Salir del modo eliminar" : "Entrar al modo eliminar"}
+              title={isDeleteMode ? "Salir del modo eliminar" : "Eliminar partida guardada"}
+            >
+              <img
+                src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
+                alt=""
+              />
+            </button>
+
+            <h3>Cargar Partida</h3>
+            <p>Selecciona uno de los 3 slots disponibles.</p>
+
+            <div className="home-load-slots">
+              {[0, 1, 2].map((slotIndex) => {
+                const slot = savedBattleSlots[slotIndex];
+
+                return (
+                  <div
+                    key={slotIndex}
+                    className={`home-load-slot ${slot ? "filled" : "empty"} ${
+                      isDeleteMode && slot ? "delete-mode" : ""
+                    } ${
+                      selectedDeleteSlot === slotIndex ? "delete-selected" : ""
+                    }`}
+                    role={slot ? "button" : undefined}
+                    tabIndex={slot ? 0 : -1}
+                    aria-disabled={!slot}
+                    onClick={() => {
+                      if (!slot) return;
+
+                      if (isDeleteMode) {
+                        setSelectedDeleteSlot(slotIndex);
+                        return;
+                      }
+
+                      closeLoadBattleModal();
+                      onLoadSavedBattle(slotIndex);
+                    }}
+                    onKeyDown={(event) => {
+                      if (!slot) return;
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+
+                      if (isDeleteMode) {
+                        setSelectedDeleteSlot(slotIndex);
+                        return;
+                      }
+
+                      closeLoadBattleModal();
+                      onLoadSavedBattle(slotIndex);
+                    }}
+                  >
+                    <span className="home-load-slot-kicker">{`SLOT #${slotIndex + 1}`}</span>
+                    {slot ? (
+                      <>
+                        <span className="home-load-slot-title">
+                          {slot.player1Name} vs {slot.player2Name}
+                        </span>
+                        <span className="home-load-slot-meta">
+                          Turno {slot.turn} · {slot.formattedTime}
+                        </span>
+                        <span className="home-load-slot-meta">
+                          Guardada: {formatSlotSavedAt(slot.savedAt)}
+                        </span>
+                        {isDeleteMode && selectedDeleteSlot === slotIndex && (
+                          <button
+                            type="button"
+                            className="home-load-delete-action"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setShowDeleteConfirmModal(true);
+                            }}
+                          >
+                            ELIMINAR PARTIDA GUARDADA
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="home-load-slot-empty">Vacío</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {showDeleteConfirmModal && selectedDeleteSlot !== null && (
+              <div
+                className="home-load-delete-confirm-overlay"
+                onClick={() => setShowDeleteConfirmModal(false)}
+              >
+                <div
+                  className="home-load-delete-confirm-modal"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <h4>¿DESEA ELIMINAR ESTA PARTIDA GUARDADA?</h4>
+                  <div className="home-load-delete-confirm-actions">
+                    <button
+                      type="button"
+                      className="home-load-delete-confirm-accept"
+                      onClick={() => {
+                        onDeleteSavedBattle(selectedDeleteSlot);
+                        setShowDeleteConfirmModal(false);
+                        setSelectedDeleteSlot(null);
+                        setIsDeleteMode(false);
+                      }}
+                    >
+                      ACEPTAR
+                    </button>
+                    <button
+                      type="button"
+                      className="home-load-delete-confirm-cancel"
+                      onClick={() => setShowDeleteConfirmModal(false)}
+                    >
+                      CANCELAR
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3284,10 +3523,13 @@ function AvatarsScreen({ onGoHome }) {
   );
 }
 export default function App() {
+  const BATTLE_SAVE_STORAGE_KEY = "jhoyce-battle-save-slots-v1";
+  const MAX_BATTLE_SAVE_SLOTS = 3;
   const menuMusicRef = useRef(null);
   const battleMusicRef = useRef(null);
   const buttonClickSoundRef = useRef(null);
   const rouletteIntervalRef = useRef(null);
+  const saveToastTimeoutRef = useRef(null);
   const [turn, setTurn] = useState(1);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
@@ -3301,6 +3543,8 @@ export default function App() {
   const [player2Hp, setPlayer2Hp] = useState(AVATAR_OPTIONS[1].hp);
   const [player1Em, setPlayer1Em] = useState(0);
   const [player2Em, setPlayer2Em] = useState(0);
+  const player1HpRef = useRef(AVATAR_OPTIONS[0].hp);
+  const player2HpRef = useRef(AVATAR_OPTIONS[1].hp);
 
   const [player1History, setPlayer1History] = useState([]);
   const [player2History, setPlayer2History] = useState([]);
@@ -3312,6 +3556,10 @@ export default function App() {
   const [player2MainHpFlash, setPlayer2MainHpFlash] = useState("");
   const [player1SecondaryHpFlash, setPlayer1SecondaryHpFlash] = useState("");
   const [player2SecondaryHpFlash, setPlayer2SecondaryHpFlash] = useState("");
+  const [player1MainHpPopup, setPlayer1MainHpPopup] = useState(null);
+  const [player2MainHpPopup, setPlayer2MainHpPopup] = useState(null);
+  const [player1SecondaryHpPopup, setPlayer1SecondaryHpPopup] = useState(null);
+  const [player2SecondaryHpPopup, setPlayer2SecondaryHpPopup] = useState(null);
 
   const [player1Confirmed, setPlayer1Confirmed] = useState(false);
   const [player2Confirmed, setPlayer2Confirmed] = useState(false);
@@ -3364,6 +3612,10 @@ export default function App() {
 
   const [screen, setScreen] = useState("home");
   const [screenVisible, setScreenVisible] = useState(true);
+  const [savedBattleSlots, setSavedBattleSlots] = useState(
+    Array(MAX_BATTLE_SAVE_SLOTS).fill(null)
+  );
+  const [saveToastMessage, setSaveToastMessage] = useState("");
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -3372,6 +3624,8 @@ export default function App() {
   const [player2Secondary, setPlayer2Secondary] = useState(null);
   const [player1SecondaryTurnDisplay, setPlayer1SecondaryTurnDisplay] = useState(null);
   const [player2SecondaryTurnDisplay, setPlayer2SecondaryTurnDisplay] = useState(null);
+  const player1SecondaryRef = useRef(null);
+  const player2SecondaryRef = useRef(null);
 
   const [showSecondaryModal, setShowSecondaryModal] = useState(false);
   const [secondaryModalPlayer, setSecondaryModalPlayer] = useState(null);
@@ -3394,6 +3648,66 @@ export default function App() {
   const [selectedHealTargetSlot, setSelectedHealTargetSlot] = useState(null);
   const [battleUndoStack, setBattleUndoStack] = useState([]);
   const [battleRedoStack, setBattleRedoStack] = useState([]);
+
+  const showHpPopup = (setter, text, kind) => {
+    const tick = Date.now() + Math.random();
+    setter({ text, kind, tick });
+    setTimeout(() => {
+      setter((current) => (current?.tick === tick ? null : current));
+    }, 900);
+  };
+
+  const formatBattleElapsedTime = (totalSeconds) => {
+    const safeSeconds = Number.isFinite(totalSeconds) ? totalSeconds : 0;
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+
+    return hours > 0
+      ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+          2,
+          "0"
+        )}:${String(seconds).padStart(2, "0")}`
+      : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const showSaveToast = (message) => {
+    if (saveToastTimeoutRef.current) {
+      clearTimeout(saveToastTimeoutRef.current);
+    }
+
+    setSaveToastMessage(message);
+    saveToastTimeoutRef.current = setTimeout(() => {
+      setSaveToastMessage("");
+      saveToastTimeoutRef.current = null;
+    }, 2600);
+  };
+
+  const persistSavedBattleSlots = (slots) => {
+    setSavedBattleSlots(slots);
+
+    try {
+      localStorage.setItem(BATTLE_SAVE_STORAGE_KEY, JSON.stringify(slots));
+    } catch {
+      // Ignore local persistence errors and keep in-memory state.
+    }
+  };
+
+  useEffect(() => {
+    player1HpRef.current = player1Hp;
+  }, [player1Hp]);
+
+  useEffect(() => {
+    player2HpRef.current = player2Hp;
+  }, [player2Hp]);
+
+  useEffect(() => {
+    player1SecondaryRef.current = player1Secondary;
+  }, [player1Secondary]);
+
+  useEffect(() => {
+    player2SecondaryRef.current = player2Secondary;
+  }, [player2Secondary]);
 
   const getPlayerSlotEm = (playerId, slot) => {
     if (playerId === "player1") {
@@ -3443,6 +3757,10 @@ export default function App() {
     elapsedSeconds,
     timerRunning,
     gameStarted,
+    player1Confirmed,
+    player2Confirmed,
+    showQuickStartButton:
+      showQuickStartButton || (!gameStarted && player1Confirmed && player2Confirmed),
     player1Name,
     player2Name,
     player1BaseHp,
@@ -3475,6 +3793,9 @@ export default function App() {
     setElapsedSeconds(snapshot.elapsedSeconds);
     setTimerRunning(snapshot.timerRunning);
     setGameStarted(snapshot.gameStarted);
+    setPlayer1Confirmed(snapshot.player1Confirmed ?? false);
+    setPlayer2Confirmed(snapshot.player2Confirmed ?? false);
+    setShowQuickStartButton(snapshot.showQuickStartButton ?? false);
     setPlayer1Name(snapshot.player1Name);
     setPlayer2Name(snapshot.player2Name);
     setPlayer1BaseHp(snapshot.player1BaseHp);
@@ -3508,6 +3829,12 @@ export default function App() {
     setSelectedHealTargetSlot(null);
     setShowAdjustHpModal(false);
     setShowAdjustAttackModal(false);
+    setShowStartMatchModal(false);
+    setShowExitConfirm(false);
+    setShowRestartConfirm(false);
+    setShowResetHpConfirm(false);
+    setShowSecondaryModal(false);
+    setShowSummonCardPreview(false);
   };
 
   const pushBattleHistorySnapshot = () => {
@@ -3520,6 +3847,65 @@ export default function App() {
   const clearBattleHistory = () => {
     setBattleUndoStack([]);
     setBattleRedoStack([]);
+  };
+
+  const getNextBattleSaveSlotIndex = () => {
+    const firstEmptySlot = savedBattleSlots.findIndex((slot) => !slot);
+    if (firstEmptySlot !== -1) return firstEmptySlot;
+
+    return savedBattleSlots.reduce((oldestIndex, slot, index, slots) => {
+      const currentTime = new Date(slot?.savedAt || 0).getTime();
+      const oldestTime = new Date(slots[oldestIndex]?.savedAt || 0).getTime();
+      return currentTime < oldestTime ? index : oldestIndex;
+    }, 0);
+  };
+
+  const handleSaveBattleAndExit = () => {
+    const nextSlotIndex = getNextBattleSaveSlotIndex();
+    const snapshot = createBattleSnapshot();
+    const savedAt = new Date().toISOString();
+
+    const nextSlots = [...savedBattleSlots];
+    nextSlots[nextSlotIndex] = {
+      slotNumber: nextSlotIndex + 1,
+      savedAt,
+      turn: snapshot.turn,
+      player1Name: snapshot.player1Name,
+      player2Name: snapshot.player2Name,
+      formattedTime: formatBattleElapsedTime(snapshot.elapsedSeconds),
+      snapshot,
+    };
+
+    persistSavedBattleSlots(nextSlots);
+    resetGameState();
+    setShowExitConfirm(false);
+    navigateWithTransition("home");
+    showSaveToast(
+      `PARTIDA GUARDADA EXITOSAMENTE EN EL SLOT #${nextSlotIndex + 1}`
+    );
+  };
+
+  const handleLoadSavedBattle = (slotIndex) => {
+    const slot = savedBattleSlots[slotIndex];
+    if (!slot?.snapshot) return;
+
+    setScreenVisible(false);
+
+    setTimeout(() => {
+      clearBattleHistory();
+      applyBattleSnapshot(slot.snapshot);
+      setScreen("battle");
+      setScreenVisible(true);
+    }, 250);
+  };
+
+  const handleDeleteSavedBattle = (slotIndex) => {
+    const nextSlots = [...savedBattleSlots];
+    if (!nextSlots[slotIndex]) return;
+
+    nextSlots[slotIndex] = null;
+    persistSavedBattleSlots(nextSlots);
+    showSaveToast(`PARTIDA ELIMINADA DEL SLOT #${slotIndex + 1}`);
   };
 
   const handleUndoBattleAction = () => {
@@ -3568,6 +3954,33 @@ useEffect(() => {
       audio.pause();
       audio.currentTime = 0;
     });
+  };
+}, []);
+
+useEffect(() => {
+  try {
+    const storedSlots = localStorage.getItem(BATTLE_SAVE_STORAGE_KEY);
+    if (!storedSlots) return;
+
+    const parsedSlots = JSON.parse(storedSlots);
+    if (!Array.isArray(parsedSlots)) return;
+
+    const normalizedSlots = Array.from(
+      { length: MAX_BATTLE_SAVE_SLOTS },
+      (_, index) => parsedSlots[index] || null
+    );
+    setSavedBattleSlots(normalizedSlots);
+  } catch {
+    setSavedBattleSlots(Array(MAX_BATTLE_SAVE_SLOTS).fill(null));
+  }
+}, []);
+
+useEffect(() => {
+  return () => {
+    if (saveToastTimeoutRef.current) {
+      clearTimeout(saveToastTimeoutRef.current);
+      saveToastTimeoutRef.current = null;
+    }
   };
 }, []);
 
@@ -3879,9 +4292,10 @@ const handleSecondaryCardTap = (avatarId) => {
 
 const applyHealToTarget = (playerId, amount, targetSlot) => {
   const isPlayer1 = playerId === "player1";
+  const syncTick = Date.now();
 
   if (targetSlot === "main") {
-    const currentHp = isPlayer1 ? player1Hp : player2Hp;
+    const currentHp = isPlayer1 ? player1HpRef.current : player2HpRef.current;
     const maxHp = isPlayer1 ? player1BaseHp : player2BaseHp;
     const healedHp = Math.min(maxHp, currentHp + amount);
     const healed = healedHp - currentHp;
@@ -3890,16 +4304,26 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
     pushBattleHistorySnapshot();
 
     if (isPlayer1) {
+      player1HpRef.current = healedHp;
       setPlayer1Hp(healedHp);
       triggerFlash(setPlayer1MainHpFlash, "heal");
+      showHpPopup(setPlayer1MainHpPopup, `+${healed} PV`, "heal");
       setPlayer1History((prev) => [`Curación manual: +${healed} PV`, ...prev.slice(0, 5)]);
     } else {
+      player2HpRef.current = healedHp;
       setPlayer2Hp(healedHp);
       triggerFlash(setPlayer2MainHpFlash, "heal");
+      showHpPopup(setPlayer2MainHpPopup, `+${healed} PV`, "heal");
       setPlayer2History((prev) => [`Curación manual: +${healed} PV`, ...prev.slice(0, 5)]);
     }
+
+    setHpSyncRequest({
+      playerId,
+      slot: "main",
+      tick: syncTick,
+    });
   } else {
-    const secondary = isPlayer1 ? player1Secondary : player2Secondary;
+    const secondary = isPlayer1 ? player1SecondaryRef.current : player2SecondaryRef.current;
     if (!secondary) return;
 
     const healedHp = Math.min(secondary.maxHp, secondary.currentHp + amount);
@@ -3909,26 +4333,42 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
     pushBattleHistorySnapshot();
 
     if (isPlayer1) {
+      player1SecondaryRef.current = {
+        ...secondary,
+        currentHp: healedHp,
+      };
       setPlayer1Secondary((prev) => ({
         ...prev,
         currentHp: healedHp,
       }));
       triggerFlash(setPlayer1SecondaryHpFlash, "heal");
+      showHpPopup(setPlayer1SecondaryHpPopup, `+${healed} PV`, "heal");
       setPlayer1History((prev) => [
         `Curación manual a ${secondary.name}: +${healed} PV`,
         ...prev.slice(0, 5),
       ]);
     } else {
+      player2SecondaryRef.current = {
+        ...secondary,
+        currentHp: healedHp,
+      };
       setPlayer2Secondary((prev) => ({
         ...prev,
         currentHp: healedHp,
       }));
       triggerFlash(setPlayer2SecondaryHpFlash, "heal");
+      showHpPopup(setPlayer2SecondaryHpPopup, `+${healed} PV`, "heal");
       setPlayer2History((prev) => [
         `Curación manual a ${secondary.name}: +${healed} PV`,
         ...prev.slice(0, 5),
       ]);
     }
+
+    setHpSyncRequest({
+      playerId,
+      slot: "secondary",
+      tick: syncTick,
+    });
   }
 };
 
@@ -4068,6 +4508,12 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   const setEnemyMainFlash = isPlayer1 ? setPlayer2MainHpFlash : setPlayer1MainHpFlash;
   const setOwnSecondaryFlash = isPlayer1 ? setPlayer1SecondaryHpFlash : setPlayer2SecondaryHpFlash;
   const setEnemySecondaryFlash = isPlayer1 ? setPlayer2SecondaryHpFlash : setPlayer1SecondaryHpFlash;
+  const setOwnMainHpPopup = isPlayer1 ? setPlayer1MainHpPopup : setPlayer2MainHpPopup;
+  const setEnemyMainHpPopup = isPlayer1 ? setPlayer2MainHpPopup : setPlayer1MainHpPopup;
+  const setOwnSecondaryHpPopup =
+    isPlayer1 ? setPlayer1SecondaryHpPopup : setPlayer2SecondaryHpPopup;
+  const setEnemySecondaryHpPopup =
+    isPlayer1 ? setPlayer2SecondaryHpPopup : setPlayer1SecondaryHpPopup;
 
   const setOwnSecondary = isPlayer1 ? setPlayer1Secondary : setPlayer2Secondary;
   const setEnemySecondary = isPlayer1 ? setPlayer2Secondary : setPlayer1Secondary;
@@ -4144,6 +4590,14 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
   const triggerEnemyFlash = (slot, type) => {
     triggerFlash(slot === "secondary" ? setEnemySecondaryFlash : setEnemyMainFlash, type);
+  };
+
+  const showOwnPopup = (slot, text, kind) => {
+    showHpPopup(slot === "secondary" ? setOwnSecondaryHpPopup : setOwnMainHpPopup, text, kind);
+  };
+
+  const showEnemyPopup = (slot, text, kind) => {
+    showHpPopup(slot === "secondary" ? setEnemySecondaryHpPopup : setEnemyMainHpPopup, text, kind);
   };
 
   const processEffect = (effect) => {
@@ -4475,7 +4929,10 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   if (targetSlot === "main") {
     const newMainHp = Math.max(0, enemyMainHp - totalDamage);
     setEnemyMainHp(newMainHp);
-    if (totalDamage > 0) triggerEnemyFlash("main", "damage");
+    if (totalDamage > 0) {
+      triggerEnemyFlash("main", "damage");
+      showEnemyPopup("main", `-${totalDamage} PD`, "damage");
+    }
     if (
       blockEnemyEmIfMainHpAtOrBelow !== null &&
       newMainHp <= blockEnemyEmIfMainHpAtOrBelow
@@ -4526,7 +4983,10 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         ...prev,
         currentHp: newSecondaryHp,
       }));
-      if (totalDamage > 0) triggerEnemyFlash("secondary", "damage");
+      if (totalDamage > 0) {
+        triggerEnemyFlash("secondary", "damage");
+        showEnemyPopup("secondary", `-${totalDamage} PD`, "damage");
+      }
     }
   }
 
@@ -4536,6 +4996,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       if (healed > 0) {
         setOwnMainHp((prev) => Math.min(attackerMainData.hp, prev + selfHeal));
         triggerOwnFlash("main", "heal");
+        showOwnPopup("main", `+${healed} PV`, "heal");
         notes.push(`Recupera +${healed} PV`);
       }
     } else if (attackerSecondary) {
@@ -4546,6 +5007,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           currentHp: Math.min(prev.maxHp, prev.currentHp + selfHeal),
         }));
         triggerOwnFlash("secondary", "heal");
+        showOwnPopup("secondary", `+${healed} PV`, "heal");
         notes.push(`Recupera +${healed} PV`);
       }
     }
@@ -4555,6 +5017,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     if (attackerSlot === "main") {
       setOwnMainHp((prev) => Math.max(0, prev - selfDamage));
       triggerOwnFlash("main", "damage");
+      showOwnPopup("main", `-${selfDamage} PD`, "damage");
       notes.push(`Sufre ${selfDamage} PD`);
     } else if (attackerSecondary) {
       const newHp = Math.max(0, attackerSecondary.currentHp - selfDamage);
@@ -4582,6 +5045,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           currentHp: newHp,
         }));
         triggerOwnFlash("secondary", "damage");
+        showOwnPopup("secondary", `-${selfDamage} PD`, "damage");
       }
 
       notes.push(`Sufre ${selfDamage} PD`);
@@ -4594,9 +5058,19 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   }
 
   setOwnAttackModifiers((prev) => {
-    if (!prev[attackModifierKey]) return prev;
     const next = { ...prev };
-    delete next[attackModifierKey];
+    let changed = false;
+    const attackKeyPrefix = `${attackerId}:${attackerSlot}:${ownTargetName}:`;
+    const attackKeySuffix = `:${attack.name}`;
+
+    Object.keys(prev).forEach((key) => {
+      if (key === attackModifierKey || (key.startsWith(attackKeyPrefix) && key.endsWith(attackKeySuffix))) {
+        delete next[key];
+        changed = true;
+      }
+    });
+
+    if (!changed) return prev;
     return next;
   });
 
@@ -5361,6 +5835,7 @@ const handleApplyAdjustHp = () => {
             currentHp: newHp,
           }));
           triggerFlash(setPlayer1SecondaryHpFlash, "heal");
+          showHpPopup(setPlayer1SecondaryHpPopup, `+${healed} PV`, "heal");
           setPlayer1History((prev) => [
             `Ajuste manual a ${player1Secondary.name}: +${healed} PV`,
             ...prev.slice(0, 5),
@@ -5385,6 +5860,7 @@ const handleApplyAdjustHp = () => {
               ...prev,
               currentHp: newHp,
             }));
+            showHpPopup(setPlayer1SecondaryHpPopup, `-${damageDone} PD`, "damage");
             setPlayer1History((prev) => [
               `Ajuste manual a ${player1Secondary.name}: -${damageDone} PD`,
               ...prev.slice(0, 5),
@@ -5401,6 +5877,7 @@ const handleApplyAdjustHp = () => {
       if (healed > 0) {
         setPlayer1Hp(newHp);
         triggerFlash(setPlayer1MainHpFlash, "heal");
+        showHpPopup(setPlayer1MainHpPopup, `+${healed} PV`, "heal");
         setPlayer1History((prev) => [`Ajuste manual: +${healed} PV`, ...prev.slice(0, 5)]);
       }
     } else {
@@ -5410,6 +5887,7 @@ const handleApplyAdjustHp = () => {
       if (damageDone > 0) {
         setPlayer1Hp(newHp);
         triggerFlash(setPlayer1MainHpFlash, "damage");
+        showHpPopup(setPlayer1MainHpPopup, `-${damageDone} PD`, "damage");
         setPlayer1History((prev) => [`Ajuste manual: -${damageDone} PD`, ...prev.slice(0, 5)]);
       }
     }
@@ -5427,6 +5905,7 @@ const handleApplyAdjustHp = () => {
             currentHp: newHp,
           }));
           triggerFlash(setPlayer2SecondaryHpFlash, "heal");
+          showHpPopup(setPlayer2SecondaryHpPopup, `+${healed} PV`, "heal");
           setPlayer2History((prev) => [
             `Ajuste manual a ${player2Secondary.name}: +${healed} PV`,
             ...prev.slice(0, 5),
@@ -5451,6 +5930,7 @@ const handleApplyAdjustHp = () => {
               ...prev,
               currentHp: newHp,
             }));
+            showHpPopup(setPlayer2SecondaryHpPopup, `-${damageDone} PD`, "damage");
             setPlayer2History((prev) => [
               `Ajuste manual a ${player2Secondary.name}: -${damageDone} PD`,
               ...prev.slice(0, 5),
@@ -5467,6 +5947,7 @@ const handleApplyAdjustHp = () => {
       if (healed > 0) {
         setPlayer2Hp(newHp);
         triggerFlash(setPlayer2MainHpFlash, "heal");
+        showHpPopup(setPlayer2MainHpPopup, `+${healed} PV`, "heal");
         setPlayer2History((prev) => [`Ajuste manual: +${healed} PV`, ...prev.slice(0, 5)]);
       }
     } else {
@@ -5476,6 +5957,7 @@ const handleApplyAdjustHp = () => {
       if (damageDone > 0) {
         setPlayer2Hp(newHp);
         triggerFlash(setPlayer2MainHpFlash, "damage");
+        showHpPopup(setPlayer2MainHpPopup, `-${damageDone} PD`, "damage");
         setPlayer2History((prev) => [`Ajuste manual: -${damageDone} PD`, ...prev.slice(0, 5)]);
       }
     }
@@ -5571,6 +6053,9 @@ useEffect(() => {
       onStartBattle={() => navigateWithTransition("battle")}
       onGoLibrary={() => navigateWithTransition("library")}
       onGoAvatars={() => navigateWithTransition("avatars")}
+      onLoadSavedBattle={handleLoadSavedBattle}
+      onDeleteSavedBattle={handleDeleteSavedBattle}
+      savedBattleSlots={savedBattleSlots}
     />
   );
 }
@@ -6063,23 +6548,23 @@ useEffect(() => {
         {showExitConfirm && (
           <div className="exit-confirm-overlay">
             <div className="exit-confirm-modal">
-              <h3>{"\u00BFEst\u00E1s seguro que quieres salir?"}</h3>
+              <h3>{"\u00BFDESEA GUARDAR ESTA PARTIDA?"}</h3>
 
               <div className="exit-confirm-actions">
                 <button
                   className="exit-accept-btn"
-                  onClick={() => {
-                    resetGameState();
-                    setShowExitConfirm(false);
-                    navigateWithTransition("home");
-                  }}
+                  onClick={handleSaveBattleAndExit}
                 >
                   ACEPTAR
                 </button>
 
                 <button
                   className="exit-cancel-btn"
-                  onClick={() => setShowExitConfirm(false)}
+                  onClick={() => {
+                    resetGameState();
+                    setShowExitConfirm(false);
+                    navigateWithTransition("home");
+                  }}
                 >
                   CANCELAR
                 </button>
@@ -6289,6 +6774,8 @@ useEffect(() => {
             }
             ownEm={player1Em}
             hpSyncRequest={hpSyncRequest}
+            mainHpPopup={player1MainHpPopup}
+            secondaryHpPopup={player1SecondaryHpPopup}
             onIncreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, 1)}
             onDecreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
@@ -6382,6 +6869,8 @@ useEffect(() => {
             }
             ownEm={player2Em}
             hpSyncRequest={hpSyncRequest}
+            mainHpPopup={player2MainHpPopup}
+            secondaryHpPopup={player2SecondaryHpPopup}
             onIncreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, 1)}
             onDecreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
@@ -6398,6 +6887,7 @@ useEffect(() => {
   return (
     <div className={`screen-fade ${screenVisible ? "screen-show" : "screen-hide"}`}>
       {renderCurrentScreen()}
+      {saveToastMessage && <div className="save-toast">{saveToastMessage}</div>}
     </div>
   );
 }
