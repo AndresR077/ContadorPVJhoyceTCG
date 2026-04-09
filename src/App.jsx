@@ -4754,7 +4754,19 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if ((effect.amount || 0) >= 0) {
           notes.push(`El próximo ataque del rival gana +${effect.amount || 0} PD`);
         } else {
-          notes.push(`El próximo ataque del rival se reduce en ${Math.abs(effect.amount || 0)} PD`);
+          if (enemySecondary) {
+            notes.push(
+              `El próximo ataque de ${enemyMainData.name} y ${enemySecondary.name} se reducen en ${Math.abs(
+                effect.amount || 0
+              )} PD`
+            );
+          } else {
+            notes.push(
+              `El próximo ataque de ${enemyMainData.name} se reduce en ${Math.abs(
+                effect.amount || 0
+              )} PD`
+            );
+          }
         }
         break;
 
@@ -4864,9 +4876,17 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     notes.push(`Marca activa: +${enemyCombatState.extraDamageTaken.amount} PD`);
   }
 
-  if (ownCombatState.nextAttackBonus.amount > 0) {
+  if (ownCombatState.nextAttackBonus.amount !== 0) {
     totalDamage += ownCombatState.nextAttackBonus.amount;
-    notes.push(`Bono del próximo ataque: +${ownCombatState.nextAttackBonus.amount} PD`);
+    if (ownCombatState.nextAttackBonus.amount > 0) {
+      notes.push(`Bono del próximo ataque: +${ownCombatState.nextAttackBonus.amount} PD`);
+    } else {
+      notes.push(
+        `Efecto de Hella Mogarth activo, ataque con -${Math.abs(
+          ownCombatState.nextAttackBonus.amount
+        )} PD`
+      );
+    }
     setOwnCombatState((prev) => ({
       ...prev,
       nextAttackBonus: {
