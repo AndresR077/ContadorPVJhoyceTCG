@@ -1351,6 +1351,9 @@ function PlayerPanel({
   onSetActiveSlot,
   isRouletteActive,
   rouletteIndex,
+  rouletteRevealActive,
+  battleIntroStaging,
+  battleIntroVisible,
   onAttackRequest,
   onHealRequest,
   ownEm,
@@ -1419,7 +1422,11 @@ const activeAvatar =
         bgPosition: "center top",
       }
     : mainAvatarView;
-const activeAvatarCardImage = getAvatarCardImage(activeAvatar.name) ?? activeAvatar.image;
+  const activeAvatarCardImage = getAvatarCardImage(activeAvatar.name) ?? activeAvatar.image;
+  const displayedHeaderName =
+    isRouletteActive && !gameStarted
+      ? AVATAR_OPTIONS[rouletteIndex]?.name ?? name
+      : name;
 
 const isSecondaryActive = activeSlot === "secondary" && !!secondaryAvatar;
 const activeAttacks = activeAvatar.attacks || [];
@@ -1610,6 +1617,17 @@ useEffect(() => {
 }, [showAvatarCardModal, activeAvatar.name]);
 
 useEffect(() => {
+  if (showAvatarCardModal) {
+    document.body.classList.add("battle-modal-open");
+    return () => {
+      document.body.classList.remove("battle-modal-open");
+    };
+  }
+
+  return undefined;
+}, [showAvatarCardModal]);
+
+useEffect(() => {
   return () => {
     if (switchSlotTimeoutRef.current) clearTimeout(switchSlotTimeoutRef.current);
     if (switchPanelTimeoutRef.current) clearTimeout(switchPanelTimeoutRef.current);
@@ -1718,9 +1736,9 @@ return (
 <div className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""}`}>
   <div className="panel-bg">
     <img
-  key={isRouletteActive ? `roulette-${rouletteIndex}` : avatarData.image}
-  src={isRouletteActive ? AVATAR_OPTIONS[rouletteIndex].image : activeAvatar.image}
-  alt={isRouletteActive ? AVATAR_OPTIONS[rouletteIndex].name : activeAvatar.name}
+  key={activeAvatar.image}
+  src={activeAvatar.image}
+  alt={activeAvatar.name}
   className={`panel-bg-image ${
     !gameStarted
       ? isConfirmed
@@ -1730,16 +1748,18 @@ return (
       ? "avatar-turn-active"
       : "avatar-turn-inactive"
   } ${activationEffect ? "avatar-activation" : ""} ${
+    rouletteRevealActive ? "panel-bg-image-roulette-reveal" : ""
+  } ${
     isSecondaryPanelSwitching ? "panel-bg-image-switching" : ""
   }`}
   style={{
-  objectFit: (isRouletteActive ? AVATAR_OPTIONS[rouletteIndex].bgFit : activeAvatar.bgFit) || "cover",
-  objectPosition: (isRouletteActive ? AVATAR_OPTIONS[rouletteIndex].bgPosition : activeAvatar.bgPosition) || "center top",
+  objectFit: activeAvatar.bgFit || "cover",
+  objectPosition: activeAvatar.bgPosition || "center top",
   }}
 />
     <div
       className={`panel-bg-transition-overlay ${
-        isSecondaryPanelSwitching ? "active" : ""
+        isSecondaryPanelSwitching || rouletteRevealActive ? "active" : ""
       }`}
     />
     <div
@@ -1749,13 +1769,21 @@ return (
     />
   </div>
 
-  <div className="panel-content">
+  <div
+    className={`panel-content ${
+      battleIntroStaging
+        ? battleIntroVisible
+          ? "battle-intro-reveal"
+          : "battle-intro-hidden"
+        : ""
+    }`}
+  >
       <div className={`panel-top ${bgClass === "left-side" ? "panel-top-left" : ""}`}>
 <div className="avatar-header">
   <div className={`avatar-name-area ${isSecondaryActive ? "secondary-active" : ""}`}>
     <select
       className={`name-select ${gameStarted ? "battle-card-icon-active" : ""}`}
-      value={name}
+      value={displayedHeaderName}
       disabled={gameStarted || isConfirmed}
       onChange={(e) => handleAvatarChange(e.target.value)}
     >
@@ -2114,13 +2142,13 @@ return (
               className="battle-avatar-card-image"
             />
           </div>
-          <div className="battle-avatar-card-flip-face battle-avatar-card-flip-back">
-            <img
-              src="/ui/Dorso.png"
-              alt="Dorso de carta"
-              className="battle-avatar-card-image"
-            />
-          </div>
+            <div className="battle-avatar-card-flip-face battle-avatar-card-flip-back">
+              <img
+                src="/ui/Dorso.jpg"
+                alt="Dorso de carta"
+                className="battle-avatar-card-image"
+              />
+            </div>
         </div>
       </button>
     </div>
@@ -3288,8 +3316,15 @@ export default function App() {
   const [player1Confirmed, setPlayer1Confirmed] = useState(false);
   const [player2Confirmed, setPlayer2Confirmed] = useState(false);
   const [showStartMatchModal, setShowStartMatchModal] = useState(false);
+  const [showQuickStartButton, setShowQuickStartButton] = useState(false);
+  const [isLaunchingBattleFromModal, setIsLaunchingBattleFromModal] = useState(false);
+  const [isBattleIntroStaging, setIsBattleIntroStaging] = useState(false);
+  const [battleIntroRevealPlayer1, setBattleIntroRevealPlayer1] = useState(false);
+  const [battleIntroRevealPlayer2, setBattleIntroRevealPlayer2] = useState(false);
   const [showResetHpConfirm, setShowResetHpConfirm] = useState(false);
   const [resetTargetPlayer, setResetTargetPlayer] = useState(null);
+  const battleStartLaunchTimeoutRef = useRef(null);
+  const battleIntroTimeoutsRef = useRef([]);
 
   const [showAdjustHpModal, setShowAdjustHpModal] = useState(false);
   const [adjustTargetPlayer, setAdjustTargetPlayer] = useState(null);
@@ -3313,8 +3348,11 @@ export default function App() {
   const [isRouletteActive, setIsRouletteActive] = useState(false);
   const [roulettePlayer1Index, setRoulettePlayer1Index] = useState(0);
   const [roulettePlayer2Index, setRoulettePlayer2Index] = useState(0);
+  const [rouletteRevealPlayer1, setRouletteRevealPlayer1] = useState(false);
+  const [rouletteRevealPlayer2, setRouletteRevealPlayer2] = useState(false);
   // Eliminados los estados de índices finales, se usarán refs locales
   const finalIndicesRef = useRef([0, 1]);
+  const rouletteRevealTimeoutsRef = useRef([]);
 
   const [gameStarted, setGameStarted] = useState(false);
   const [startingPlayer, setStartingPlayer] = useState(null);
@@ -3660,6 +3698,17 @@ const resetGameState = (options = {}) => {
   setPlayer2Confirmed(false);
 
   setShowStartMatchModal(false);
+  setShowQuickStartButton(false);
+  setIsLaunchingBattleFromModal(false);
+  if (battleStartLaunchTimeoutRef.current) {
+    clearTimeout(battleStartLaunchTimeoutRef.current);
+    battleStartLaunchTimeoutRef.current = null;
+  }
+  battleIntroTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+  battleIntroTimeoutsRef.current = [];
+  setIsBattleIntroStaging(false);
+  setBattleIntroRevealPlayer1(false);
+  setBattleIntroRevealPlayer2(false);
 
   setGameStarted(false);
   setStartingPlayer(null);
@@ -3689,6 +3738,19 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, [timerRunning]);
+
+useEffect(() => {
+  return () => {
+    rouletteRevealTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    rouletteRevealTimeoutsRef.current = [];
+    if (battleStartLaunchTimeoutRef.current) {
+      clearTimeout(battleStartLaunchTimeoutRef.current);
+      battleStartLaunchTimeoutRef.current = null;
+    }
+    battleIntroTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    battleIntroTimeoutsRef.current = [];
+  };
+}, []);
 
 useEffect(() => {
   if (!gameStarted || winner) return;
@@ -4761,6 +4823,13 @@ const player2TurnActive =
 const handleRandomAvatars = () => {
   if (gameStarted || isRouletteActive) return;
 
+  setShowQuickStartButton(false);
+
+  rouletteRevealTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+  rouletteRevealTimeoutsRef.current = [];
+  setRouletteRevealPlayer1(false);
+  setRouletteRevealPlayer2(false);
+
   // Generate final random indices with guaranteed uniqueness
   const availableIndices = Array.from({ length: AVATAR_OPTIONS.length }, (_, i) => i);
   const selectedIndices = [];
@@ -4793,28 +4862,51 @@ const stopRouletteAndApply = () => {
     rouletteIntervalRef.current = null;
   }
 
-  setIsRouletteActive(false);
-
   // Usar los índices almacenados en el ref local
   const [finalIndex1, finalIndex2] = finalIndicesRef.current;
   const avatar1 = AVATAR_OPTIONS[finalIndex1];
   const avatar2 = AVATAR_OPTIONS[finalIndex2];
+  setRoulettePlayer1Index(finalIndex1);
+  setRoulettePlayer2Index(finalIndex2);
 
-  setPlayer1Name(avatar1.name);
-  setPlayer1BaseHp(avatar1.hp);
-  setPlayer1Hp(avatar1.hp);
+  rouletteRevealTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+  rouletteRevealTimeoutsRef.current = [];
 
-  setPlayer2Name(avatar2.name);
-  setPlayer2BaseHp(avatar2.hp);
-  setPlayer2Hp(avatar2.hp);
+  setRouletteRevealPlayer2(true);
 
-  // Reset confirmation status
-  setPlayer1Confirmed(false);
-  setPlayer2Confirmed(false);
+  const revealBlueTimeout = setTimeout(() => {
+    setPlayer2Name(avatar2.name);
+    setPlayer2BaseHp(avatar2.hp);
+    setPlayer2Hp(avatar2.hp);
+  }, 140);
 
-  // Add to history
-  setPlayer1History([`${avatar1.name} seleccionado aleatoriamente`]);
-  setPlayer2History([`${avatar2.name} seleccionado aleatoriamente`]);
+  const switchRevealTimeout = setTimeout(() => {
+    setRouletteRevealPlayer2(false);
+    setRouletteRevealPlayer1(true);
+  }, 340);
+
+  const revealRedTimeout = setTimeout(() => {
+    setPlayer1Name(avatar1.name);
+    setPlayer1BaseHp(avatar1.hp);
+    setPlayer1Hp(avatar1.hp);
+  }, 500);
+
+  const finishRouletteTimeout = setTimeout(() => {
+    setRouletteRevealPlayer1(false);
+    setIsRouletteActive(false);
+    setPlayer1Confirmed(false);
+    setPlayer2Confirmed(false);
+    setPlayer1History([`${avatar1.name} seleccionado aleatoriamente`]);
+    setPlayer2History([`${avatar2.name} seleccionado aleatoriamente`]);
+    rouletteRevealTimeoutsRef.current = [];
+  }, 760);
+
+  rouletteRevealTimeoutsRef.current = [
+    revealBlueTimeout,
+    switchRevealTimeout,
+    revealRedTimeout,
+    finishRouletteTimeout,
+  ];
 };
 
 const handlePlayerReady = (playerId) => {
@@ -4837,6 +4929,7 @@ const handleChooseOtherAvatar = (playerId) => {
   if (gameStarted) return;
 
   setShowStartMatchModal(false);
+  setShowQuickStartButton(false);
 
   if (playerId === "player1") {
     setPlayer1Confirmed(false);
@@ -4846,19 +4939,55 @@ const handleChooseOtherAvatar = (playerId) => {
 };
 
 const handleStartMatch = () => {
-  setGameStarted(true);
-  setTurn(1);
-  setStartingPlayer(null);
-  setCurrentTurnPlayer(null);
-  setWinner(null);
   setShowStartMatchModal(false);
-  setElapsedSeconds(0);
-  setTimerRunning(true);
-  clearBattleHistory();
+  setShowQuickStartButton(false);
+  setIsLaunchingBattleFromModal(true);
+  setIsBattleIntroStaging(true);
+  setBattleIntroRevealPlayer1(false);
+  setBattleIntroRevealPlayer2(false);
+
+  if (battleStartLaunchTimeoutRef.current) {
+    clearTimeout(battleStartLaunchTimeoutRef.current);
+  }
+  battleIntroTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+  battleIntroTimeoutsRef.current = [];
+
+  battleStartLaunchTimeoutRef.current = setTimeout(() => {
+    setGameStarted(true);
+    setTurn(1);
+    setStartingPlayer(null);
+    setCurrentTurnPlayer(null);
+    setWinner(null);
+    setElapsedSeconds(0);
+    setTimerRunning(true);
+    clearBattleHistory();
+    setIsLaunchingBattleFromModal(false);
+    battleStartLaunchTimeoutRef.current = null;
+
+    const revealBlueTimeout = setTimeout(() => {
+      setBattleIntroRevealPlayer2(true);
+    }, 120);
+
+    const revealRedTimeout = setTimeout(() => {
+      setBattleIntroRevealPlayer1(true);
+    }, 420);
+
+    const finishIntroTimeout = setTimeout(() => {
+      setIsBattleIntroStaging(false);
+      battleIntroTimeoutsRef.current = [];
+    }, 920);
+
+    battleIntroTimeoutsRef.current = [
+      revealBlueTimeout,
+      revealRedTimeout,
+      finishIntroTimeout,
+    ];
+  }, 980);
 };
 
 const handleBackFromStartModal = () => {
   setShowStartMatchModal(false);
+  setShowQuickStartButton(true);
 };
 
 const navigateWithTransition = (nextScreen) => {
@@ -5408,6 +5537,32 @@ const formattedTime =
     ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
     : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
+const isAnyBattleModalOpen =
+  showTargetModal ||
+  showHealTargetModal ||
+  showAdjustHpModal ||
+  showSecondaryModal ||
+  showStartMatchModal ||
+  isLaunchingBattleFromModal ||
+  showExitConfirm ||
+  showAdjustAttackModal ||
+  showRestartConfirm ||
+  showResetHpConfirm;
+
+useEffect(() => {
+  if (screen !== "battle") return undefined;
+
+  if (isAnyBattleModalOpen) {
+    document.body.classList.add("battle-modal-open");
+  } else {
+    document.body.classList.remove("battle-modal-open");
+  }
+
+  return () => {
+    document.body.classList.remove("battle-modal-open");
+  };
+}, [screen, isAnyBattleModalOpen]);
+
   const renderCurrentScreen = () => {
     if (screen === "home") {
       
@@ -5429,7 +5584,13 @@ const formattedTime =
     }
 
     return (
-      <div className="app-wrapper">
+      <div
+        className={`app-wrapper ${isAnyBattleModalOpen ? "modal-active" : ""} ${
+          isLaunchingBattleFromModal || isBattleIntroStaging ? "battle-launch-active" : ""
+        } ${
+          isLaunchingBattleFromModal ? "battle-launch-overlay-only" : ""
+        }`}
+      >
         <div className="turn-bar">
           <div className="turn-left">
             <img src="/logo jhoyce.png" alt="Logo del juego" className="game-logo" />
@@ -5871,6 +6032,12 @@ const formattedTime =
 {showStartMatchModal && !gameStarted && (
   <div className="start-match-overlay">
     <div className="start-match-modal">
+      <h3>COMBATE LISTO!</h3>
+      <p>
+        Inicia la partida cuando quieras. También puedes volver para cambiar
+        cualquier selección antes del combate.
+      </p>
+
       <button className="start-match-btn" onClick={handleStartMatch}>
         INICIAR
       </button>
@@ -5879,6 +6046,16 @@ const formattedTime =
         REGRESAR
       </button>
     </div>
+  </div>
+)}
+
+{isLaunchingBattleFromModal && (
+  <div className="battle-launch-transition active">
+    <img
+      src="/logo jhoyce.png"
+      alt="Jhoyce Multiversal Legends"
+      className="battle-launch-transition-logo"
+    />
   </div>
 )}
 
@@ -6116,10 +6293,28 @@ const formattedTime =
             onDecreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
             rouletteIndex={roulettePlayer1Index}
+            rouletteRevealActive={rouletteRevealPlayer1}
+            battleIntroStaging={isBattleIntroStaging}
+            battleIntroVisible={battleIntroRevealPlayer1}
           />
 
-          {!gameStarted && (
+          {!gameStarted && !isLaunchingBattleFromModal && !isBattleIntroStaging && (
             <div className="random-avatar-container">
+              {showQuickStartButton && player1Confirmed && player2Confirmed && (
+                <button
+                  className="quick-start-btn"
+                  onClick={handleStartMatch}
+                  title="Iniciar partida"
+                  aria-label="Iniciar partida"
+                  disabled={isRouletteActive}
+                >
+                  <img
+                    src="/ui/start-icon.png"
+                    alt=""
+                    className="quick-start-icon"
+                  />
+                </button>
+              )}
               <button
                 className="random-avatar-btn"
                 onClick={handleRandomAvatars}
@@ -6127,7 +6322,11 @@ const formattedTime =
                 aria-label="Seleccionar avatares aleatorios"
                 disabled={isRouletteActive}
               >
-                🎲
+                <img
+                  src="/ui/random-icon.png"
+                  alt=""
+                  className="random-avatar-icon"
+                />
               </button>
             </div>
           )}
@@ -6187,6 +6386,9 @@ const formattedTime =
             onDecreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
             rouletteIndex={roulettePlayer2Index}
+            rouletteRevealActive={rouletteRevealPlayer2}
+            battleIntroStaging={isBattleIntroStaging}
+            battleIntroVisible={battleIntroRevealPlayer2}
           />  
         </div>
       </div>

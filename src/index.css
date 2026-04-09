@@ -20,6 +20,12 @@ body {
   overflow-y: auto;
 }
 
+body.battle-modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
 #root {
   width: 100%;
   min-height: 100vh;
@@ -30,6 +36,13 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.app-wrapper.modal-active .turn-bar,
+.app-wrapper.modal-active .app,
+.app-wrapper.modal-active .random-avatar-container {
+  pointer-events: none;
+  user-select: none;
 }
 
 .heal-btn:disabled {
@@ -364,12 +377,17 @@ body {
 }
 
 .panel-bg-transition-overlay.active {
-  opacity: 0.34;
+  opacity: 0.42;
 }
 
 .panel-bg-image-switching {
   transform: scale(1.045);
   filter: brightness(0.62);
+}
+
+.panel-bg-image-roulette-reveal {
+  transform: scale(1.03);
+  filter: brightness(0.58) saturate(0.94);
 }
 
 .avatar-not-ready {
@@ -454,37 +472,72 @@ body {
 .start-match-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
+  padding: 20px;
 }
 
 .start-match-modal {
+  width: min(560px, 92vw);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  text-align: center;
+  padding: 34px 30px 30px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(14, 14, 14, 0.58), rgba(0, 0, 0, 0.9)),
+    url("/ui/turn-bar-bg.png");
+  background-size: 100% 100%, 420px 420px;
+  background-position: center, center top;
+  background-repeat: no-repeat, repeat;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.52);
+}
+
+.start-match-modal h3 {
+  font-family: EB Garamond, serif;
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  line-height: 0.95;
+  color: #45ef66;
+  text-shadow:
+    0 0 12px rgba(69, 239, 102, 0.3),
+    0 0 24px rgba(69, 239, 102, 0.12);
+}
+
+.start-match-modal p {
+  max-width: 430px;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .start-match-btn {
   border: none;
-  border-radius: 24px;
-  padding: 22px 54px;
-  font-size: 3.5rem;
+  border-radius: 20px;
+  padding: 18px 40px;
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
   font-weight: 900;
   color: white;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: 0.2s;
-  min-width: 280px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: 0.22s ease;
+  min-width: min(320px, 78vw);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 14px 34px rgba(0, 0, 0, 0.28);
+  animation: startMatchButtonPulse 1.45s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .start-match-btn:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .start-back-btn {
@@ -499,6 +552,102 @@ body {
 
 .start-back-btn:hover {
   color: rgb(255, 120, 120);
+}
+
+@keyframes startMatchButtonPulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      0 14px 34px rgba(0, 0, 0, 0.28),
+      0 0 0 rgba(255, 255, 255, 0);
+  }
+  25% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 16px 36px rgba(0, 0, 0, 0.3),
+      0 0 10px rgba(255, 255, 255, 0.08),
+      0 0 18px rgba(255, 255, 255, 0.03);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+      0 20px 44px rgba(0, 0, 0, 0.34),
+      0 0 24px rgba(255, 255, 255, 0.18),
+      0 0 38px rgba(255, 255, 255, 0.07);
+  }
+  75% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 16px 36px rgba(0, 0, 0, 0.3),
+      0 0 10px rgba(255, 255, 255, 0.08),
+      0 0 18px rgba(255, 255, 255, 0.03);
+  }
+}
+
+.battle-launch-transition {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.42) 55%, rgba(0, 0, 0, 0.72));
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10010;
+  transition: opacity 0.55s ease;
+}
+
+.battle-launch-transition.active {
+  opacity: 1;
+}
+
+.battle-launch-transition-logo {
+  width: min(320px, 58vw);
+  height: auto;
+  object-fit: contain;
+  opacity: 0;
+  transform: scale(0.82);
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.4));
+  transition:
+    opacity 0.62s ease,
+    transform 0.8s ease;
+}
+
+.battle-launch-transition.active .battle-launch-transition-logo {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.app-wrapper.battle-launch-active .panel-bg-image {
+  filter: grayscale(1) brightness(0.72) contrast(1.04) !important;
+}
+
+.app-wrapper.battle-launch-active .panel-bg-overlay-red,
+.app-wrapper.battle-launch-active .panel-bg-overlay-blue {
+  opacity: 0.6;
+}
+
+.app-wrapper.battle-launch-overlay-only .panel-content,
+.app-wrapper.battle-launch-overlay-only .random-avatar-container {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px);
+}
+
+.panel-content {
+  transition: opacity 0.42s ease, transform 0.48s ease;
+}
+
+.panel-content.battle-intro-hidden {
+  opacity: 0;
+  transform: translateY(18px);
+  pointer-events: none;
+}
+
+.panel-content.battle-intro-reveal {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .panel-bg-overlay {
@@ -835,9 +984,9 @@ body {
 }
 
 .battle-action-nav-btn {
-  width: 64px;
-  min-width: 64px;
-  height: 64px;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
   border: none;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.12);
@@ -854,8 +1003,8 @@ body {
 }
 
 .battle-action-nav-icon {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
@@ -3595,6 +3744,10 @@ body {
   top: 35%;
   transform: translate(-50%, -50%);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
 }
 
 .random-avatar-btn {
@@ -3603,14 +3756,19 @@ body {
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 2rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.random-avatar-icon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
 }
 
 .random-avatar-btn:hover {
@@ -3627,6 +3785,67 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.quick-start-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(26, 155, 62, 0.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(104, 255, 146, 0.34),
+    0 0 18px rgba(57, 233, 92, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: quickStartPulse 1.55s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.quick-start-btn:hover {
+  background: rgba(26, 155, 62, 0.28);
+  transform: scale(1.08);
+}
+
+.quick-start-btn:active {
+  transform: scale(0.96);
+}
+
+.quick-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
+.quick-start-btn:disabled:hover {
+  background: rgba(26, 155, 62, 0.2);
+  transform: none;
+}
+
+.quick-start-icon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+}
+
+@keyframes quickStartPulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(104, 255, 146, 0.34),
+      0 0 18px rgba(57, 233, 92, 0.26),
+      0 10px 24px rgba(0, 0, 0, 0.28);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(132, 255, 166, 0.46),
+      0 0 30px rgba(57, 233, 92, 0.42),
+      0 14px 30px rgba(0, 0, 0, 0.32);
+  }
 }
 
 .random-avatar-btn:disabled:hover {
@@ -4242,11 +4461,9 @@ body {
   width: 58px;
   height: 58px;
   border: none;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.11);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    0 10px 24px rgba(0, 0, 0, 0.22);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4256,7 +4473,7 @@ body {
 }
 
 .avatar-card-preview-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: transparent;
 }
 
 .avatar-card-preview-icon {
