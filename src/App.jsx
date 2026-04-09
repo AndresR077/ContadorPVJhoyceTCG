@@ -458,10 +458,10 @@ const SECONDARY_AVATARS = [
         name: "Despertar de Ultratumba",
         damage: 100,
         description:
-          "Durante el próximo turno del oponente, su ataque inflige +30 PD. Luego toma 2 cartas de tu pila de descarte y regrésalas a tu mano.",
+          "Durante el próximo turno del oponente, su ataque inflige -30 PD. Luego toma 2 cartas de tu pila de descarte y regrésalas a tu mano.",
         effect: {
           type: "grant_enemy_next_turn_bonus_damage",
-          amount: 30,
+          amount: -30,
         },
       },
       {
@@ -4751,7 +4751,11 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
             amount: effect.amount || 0,
           },
         }));
-        notes.push(`El próximo ataque del rival gana +${effect.amount || 0} PD`);
+        if ((effect.amount || 0) >= 0) {
+          notes.push(`El próximo ataque del rival gana +${effect.amount || 0} PD`);
+        } else {
+          notes.push(`El próximo ataque del rival se reduce en ${Math.abs(effect.amount || 0)} PD`);
+        }
         break;
 
       case "medusa_first_attack_or_block_em":
