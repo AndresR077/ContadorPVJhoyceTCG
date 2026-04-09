@@ -1339,14 +1339,16 @@ function PlayerPanel({
   setOwnCombatState,
   mainHpFlash,
   secondaryHpFlash,
+  turn,
   isConfirmed,
   onReady,
   onChooseOtherAvatar,
   onRequestResetHp,
   onRequestAdjustHp,
   secondaryAvatar,
+  secondaryPanelVisible,
   secondaryTurnDisplay,
-  onOpenSecondaryModal,
+  onSecondaryButtonClick,
   activeSlot,
   onSetActiveSlot,
   isRouletteActive,
@@ -1442,6 +1444,8 @@ const activeEm = isSecondaryActive ? secondaryAvatar?.currentEm ?? 0 : ownEm;
 const shouldShowTypeIconInColor = isTurnActive || showInactiveTypeIconColor;
 const activeDisplayedHp = isSecondaryActive ? displayedSecondaryHp : displayedMainHp;
 const secondaryPanelDisplayedHp = isSecondaryActive ? displayedMainHp : displayedSecondaryHp;
+const activeHpPopupData = isSecondaryActive ? secondaryHpPopup : mainHpPopup;
+const secondaryPanelHpPopupData = isSecondaryActive ? mainHpPopup : secondaryHpPopup;
 const secondaryTurnToneClass =
   secondaryTurnDisplay === null
     ? ""
@@ -1455,6 +1459,30 @@ const hasHealableTarget =
   (secondaryAvatar && secondaryAvatar.currentHp < secondaryAvatar.maxHp);
 const canUseHealButtons =
   gameStarted && !gameOver && isTurnActive && hasHealableTarget;
+const hasSecondarySummoned = !!secondaryAvatar;
+const canSummonSecondary =
+  gameStarted &&
+  !gameOver &&
+  isTurnActive &&
+  turn > 1 &&
+  !hasSecondarySummoned &&
+  secondaryTurnDisplay !== 0;
+const canToggleSecondaryPanel = gameStarted && !gameOver && hasSecondarySummoned;
+const isSecondaryButtonDisabled = !canSummonSecondary && !canToggleSecondaryPanel;
+const secondaryButtonTitle = hasSecondarySummoned
+  ? secondaryPanelVisible
+    ? "Ocultar Avatar Secundario"
+    : "Mostrar Avatar Secundario"
+  : turn <= 1
+  ? "No puedes invocar Avatar Secundario en el turno 1"
+  : "Invocar Avatar Secundario";
+const shouldAnimateSecondaryButtonDamage =
+  hasSecondarySummoned &&
+  !secondaryPanelVisible &&
+  (mainHpFlash === "damage" || secondaryHpFlash === "damage");
+const secondaryButtonDamageClass = shouldAnimateSecondaryButtonDamage
+  ? "secondary-avatar-btn-damage-impact secondary-avatar-btn-hit-dark"
+  : "";
 const canPlaceEm =
   gameStarted &&
   !gameOver &&
@@ -1897,57 +1925,66 @@ return (
 </div>
 
 {gameStarted && secondaryAvatar && (
-  <div className="secondary-active-wrapper">
-    <button
-      type="button"
-      className={`secondary-large-panel ${
-        isSecondaryActive ? "active" : ""
-      } ${bgClass === "left-side" ? "secondary-large-panel-red" : "secondary-large-panel-blue"} ${
-        !isTurnActive ? "turn-inactive-visual" : ""
-      }`}
-      onClick={handleToggleActiveAvatar}
-    >
-      <div
-        className={`secondary-large-panel-image-wrap ${
-          secondaryPanelHpFlash === "damage" ? "secondary-large-panel-hit-dark" : ""
+  <div
+    className={`secondary-active-wrapper ${
+      secondaryPanelVisible ? "is-visible" : "is-hidden"
+    }`}
+  >
+    <div className="secondary-active-wrapper-inner">
+      <button
+        type="button"
+        className={`secondary-large-panel ${
+          isSecondaryActive ? "active" : ""
+        } ${bgClass === "left-side" ? "secondary-large-panel-red" : "secondary-large-panel-blue"} ${
+          !isTurnActive ? "turn-inactive-visual" : ""
         }`}
+        onClick={handleToggleActiveAvatar}
       >
-        <img
-          src={isSecondaryActive ? avatarData.image : secondaryAvatar.image}
-          alt={isSecondaryActive ? avatarData.name : secondaryAvatar.name}
-          className={`secondary-large-panel-image ${
-            secondaryPanelHpFlash === "damage" ? "secondary-large-panel-image-damage-impact" : ""
-          }`}
-        />
-        <div className="secondary-large-panel-image-overlay" />
-      </div>
-
-      <div className="secondary-large-panel-info">
-        <span className="secondary-large-panel-label">
-         {isSecondaryActive ? "Volver a Principal" : "Cambiar a Secundario"}
-        </span>
-
-        <span className="secondary-large-panel-name">
-          {isSecondaryActive ? avatarData.name : secondaryAvatar.name}
-        </span>
-
-        <span
-          className={`secondary-large-panel-hp ${
-            secondaryPanelHpFlash ? `hp-flash-${secondaryPanelHpFlash}` : ""
+        <div
+          className={`secondary-large-panel-image-wrap ${
+            secondaryPanelHpFlash === "damage" ? "secondary-large-panel-hit-dark" : ""
           }`}
         >
-          {secondaryPanelDisplayedHp} PV
-        </span>
-        {secondaryHpPopup && (
-          <div
-            key={secondaryHpPopup.tick}
-            className={`hp-float-popup hp-float-popup-secondary hp-float-${secondaryHpPopup.kind}`}
+          <img
+            src={isSecondaryActive ? avatarData.image : secondaryAvatar.image}
+            alt={isSecondaryActive ? avatarData.name : secondaryAvatar.name}
+            className={`secondary-large-panel-image ${
+              secondaryPanelHpFlash === "damage" ? "secondary-large-panel-image-damage-impact" : ""
+            }`}
+          />
+          <div className="secondary-large-panel-image-overlay" />
+        </div>
+
+        <div className="secondary-large-panel-info">
+          <span className="secondary-large-panel-label">
+           {isSecondaryActive ? "Volver a Principal" : "Cambiar a Secundario"}
+          </span>
+
+          <span
+            className={`secondary-large-panel-hp ${
+              secondaryPanelHpFlash ? `hp-flash-${secondaryPanelHpFlash}` : ""
+            }`}
           >
-            {secondaryHpPopup.text}
-          </div>
-        )}
-      </div>
-    </button>
+            <span className="secondary-large-panel-hp-value">
+              {secondaryPanelDisplayedHp}
+            </span>
+            <span className="secondary-large-panel-hp-unit">PV</span>
+          </span>
+
+          <span className="secondary-large-panel-name">
+            {isSecondaryActive ? avatarData.name : secondaryAvatar.name}
+          </span>
+          {secondaryPanelHpPopupData && (
+            <div
+              key={secondaryPanelHpPopupData.tick}
+              className={`hp-float-popup hp-float-popup-secondary hp-float-${secondaryPanelHpPopupData.kind}`}
+            >
+              {secondaryPanelHpPopupData.text}
+            </div>
+          )}
+        </div>
+      </button>
+    </div>
   </div>
 )}
 
@@ -1957,17 +1994,11 @@ return (
       {isLeftSide ? (
         <>
           <button
-            className="secondary-avatar-btn icon-secondary-btn"
-            title="Invocar Avatar Secundario"
-            aria-label="Invocar Avatar Secundario"
-            disabled={
-              !gameStarted ||
-              gameOver ||
-              !isTurnActive ||
-              !!secondaryAvatar ||
-              secondaryTurnDisplay === 0
-            }
-            onClick={onOpenSecondaryModal}
+            className={`secondary-avatar-btn icon-secondary-btn ${secondaryButtonDamageClass}`}
+            title={secondaryButtonTitle}
+            aria-label={secondaryButtonTitle}
+            disabled={isSecondaryButtonDisabled}
+            onClick={onSecondaryButtonClick}
           >
             <img
               src="/ui/secondary-avatar-icon.png"
@@ -1989,12 +2020,12 @@ return (
   )}
 
   <div className="hp-center-display single-line-hp">
-    {mainHpPopup && (
+    {activeHpPopupData && (
       <div
-        key={mainHpPopup.tick}
-        className={`hp-float-popup hp-float-popup-main hp-float-${mainHpPopup.kind}`}
+        key={activeHpPopupData.tick}
+        className={`hp-float-popup hp-float-popup-main hp-float-${activeHpPopupData.kind}`}
       >
-        {mainHpPopup.text}
+        {activeHpPopupData.text}
       </div>
     )}
     <span className={`hp-number ${activeHpFlash ? `hp-flash-${activeHpFlash}` : ""}`}>
@@ -2009,17 +2040,11 @@ return (
       renderEnergyControl()
     ) : (
       <button
-        className="secondary-avatar-btn icon-secondary-btn"
-        title="Invocar Avatar Secundario"
-        aria-label="Invocar Avatar Secundario"
-        disabled={
-          !gameStarted ||
-          gameOver ||
-          !isTurnActive ||
-          !!secondaryAvatar ||
-          secondaryTurnDisplay === 0
-        }
-        onClick={onOpenSecondaryModal}
+        className={`secondary-avatar-btn icon-secondary-btn ${secondaryButtonDamageClass}`}
+        title={secondaryButtonTitle}
+        aria-label={secondaryButtonTitle}
+        disabled={isSecondaryButtonDisabled}
+        onClick={onSecondaryButtonClick}
       >
         <img
           src="/ui/secondary-avatar-icon.png"
@@ -2183,6 +2208,21 @@ return (
 );
 }
 
+function OrnateFrameDecoration() {
+  return (
+    <span className="ornate-frame" aria-hidden="true">
+      <span className="ornate-frame-edge ornate-frame-edge-top" />
+      <span className="ornate-frame-edge ornate-frame-edge-right" />
+      <span className="ornate-frame-edge ornate-frame-edge-bottom" />
+      <span className="ornate-frame-edge ornate-frame-edge-left" />
+      <span className="ornate-frame-corner ornate-frame-corner-top-left" />
+      <span className="ornate-frame-corner ornate-frame-corner-top-right" />
+      <span className="ornate-frame-corner ornate-frame-corner-bottom-right" />
+      <span className="ornate-frame-corner ornate-frame-corner-bottom-left" />
+    </span>
+  );
+}
+
 function HomeScreen({
   onStartBattle,
   onGoLibrary,
@@ -2218,6 +2258,8 @@ function HomeScreen({
       onActivate: onGoAvatars,
     },
   ];
+  const homeBattleAction = homeActions.find((action) => action.id === "battle");
+  const homeSideActions = homeActions.filter((action) => action.id !== "battle");
 
   const backgroundImages = [
     "/ui/home-bg-1.png",
@@ -2305,23 +2347,37 @@ function HomeScreen({
 
       <div className="home-main">
         <div className="home-buttons">
-          <div className="home-action-stack">
-            {homeActions
-              .filter((action) => action.id === "battle")
-              .map((action) => {
-                const isSelected = selectedHomeAction === action.id;
+          {homeSideActions
+            .filter((action) => action.id === "library")
+            .map((action) => {
+              const isSelected = selectedHomeAction === action.id;
 
-                return (
-                  <button
-                    key={action.id}
-                    type="button"
-                    className={`home-menu-card ${action.id} ${isSelected ? "active" : ""}`}
-                    onClick={() => handleHomeActionClick(action)}
-                  >
-                    <span className="home-menu-card-label">{action.label}</span>
-                  </button>
-                );
-              })}
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={`home-menu-card ${action.id} ${isSelected ? "active" : ""}`}
+                  onClick={() => handleHomeActionClick(action)}
+                >
+                  <OrnateFrameDecoration />
+                  <span className="home-menu-card-label">{action.label}</span>
+                </button>
+              );
+            })}
+
+          <div className="home-action-stack">
+            {homeBattleAction && (
+              <button
+                type="button"
+                className={`home-menu-card ${homeBattleAction.id} home-menu-card-featured ${
+                  selectedHomeAction === homeBattleAction.id ? "active" : ""
+                }`}
+                onClick={() => handleHomeActionClick(homeBattleAction)}
+              >
+                <OrnateFrameDecoration />
+                <span className="home-menu-card-label">{homeBattleAction.label}</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -2340,8 +2396,8 @@ function HomeScreen({
             </button>
           </div>
 
-          {homeActions
-            .filter((action) => action.id !== "battle")
+          {homeSideActions
+            .filter((action) => action.id === "avatars")
             .map((action) => {
             const isSelected = selectedHomeAction === action.id;
 
@@ -2352,6 +2408,7 @@ function HomeScreen({
                 className={`home-menu-card ${action.id} ${isSelected ? "active" : ""}`}
                 onClick={() => handleHomeActionClick(action)}
               >
+                <OrnateFrameDecoration />
                 <span className="home-menu-card-label">{action.label}</span>
               </button>
             );
@@ -2378,6 +2435,7 @@ function HomeScreen({
             className="home-load-modal"
             onClick={(event) => event.stopPropagation()}
           >
+            <OrnateFrameDecoration />
             <button
               type="button"
               className={`home-load-trash-toggle ${isDeleteMode ? "active" : ""}`}
@@ -3622,6 +3680,8 @@ export default function App() {
 
   const [player1Secondary, setPlayer1Secondary] = useState(null);
   const [player2Secondary, setPlayer2Secondary] = useState(null);
+  const [player1SecondaryPanelVisible, setPlayer1SecondaryPanelVisible] = useState(false);
+  const [player2SecondaryPanelVisible, setPlayer2SecondaryPanelVisible] = useState(false);
   const [player1SecondaryTurnDisplay, setPlayer1SecondaryTurnDisplay] = useState(null);
   const [player2SecondaryTurnDisplay, setPlayer2SecondaryTurnDisplay] = useState(null);
   const player1SecondaryRef = useRef(null);
@@ -3775,6 +3835,8 @@ export default function App() {
     player2CombatState: cloneBattleValue(player2CombatState),
     player1Secondary: cloneBattleValue(player1Secondary),
     player2Secondary: cloneBattleValue(player2Secondary),
+    player1SecondaryPanelVisible,
+    player2SecondaryPanelVisible,
     player1SecondaryTurnDisplay,
     player2SecondaryTurnDisplay,
     player1ActiveSlot,
@@ -3810,6 +3872,12 @@ export default function App() {
     setPlayer2CombatState(snapshot.player2CombatState || createCombatState());
     setPlayer1Secondary(snapshot.player1Secondary);
     setPlayer2Secondary(snapshot.player2Secondary);
+    setPlayer1SecondaryPanelVisible(
+      snapshot.player1SecondaryPanelVisible ?? !!snapshot.player1Secondary
+    );
+    setPlayer2SecondaryPanelVisible(
+      snapshot.player2SecondaryPanelVisible ?? !!snapshot.player2Secondary
+    );
     setPlayer1SecondaryTurnDisplay(snapshot.player1SecondaryTurnDisplay);
     setPlayer2SecondaryTurnDisplay(snapshot.player2SecondaryTurnDisplay);
     setPlayer1ActiveSlot(snapshot.player1ActiveSlot || "main");
@@ -4132,6 +4200,8 @@ const resetGameState = (options = {}) => {
 
   setPlayer1Secondary(null);
   setPlayer2Secondary(null);
+  setPlayer1SecondaryPanelVisible(false);
+  setPlayer2SecondaryPanelVisible(false);
   setPlayer1SecondaryTurnDisplay(null);
   setPlayer2SecondaryTurnDisplay(null);
 
@@ -4151,6 +4221,18 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, [timerRunning]);
+
+useEffect(() => {
+  if (!player1Secondary) {
+    setPlayer1SecondaryPanelVisible(false);
+  }
+}, [player1Secondary]);
+
+useEffect(() => {
+  if (!player2Secondary) {
+    setPlayer2SecondaryPanelVisible(false);
+  }
+}, [player2Secondary]);
 
 useEffect(() => {
   return () => {
@@ -4189,6 +4271,26 @@ useEffect(() => {
 }, [gameStarted, winner, player1Hp, player2Hp, player1Name, player2Name]);
 
 const handleOpenSecondaryModal = (playerId) => {
+  const isPlayer1 = playerId === "player1";
+  const secondaryAvatar = isPlayer1 ? player1Secondary : player2Secondary;
+  const isPlayerTurnActive = isPlayer1 ? player1TurnActive : player2TurnActive;
+  const secondaryTurnsRemaining = isPlayer1
+    ? player1SecondaryTurnDisplay
+    : player2SecondaryTurnDisplay;
+
+  if (secondaryAvatar) {
+    if (isPlayer1) {
+      setPlayer1SecondaryPanelVisible((prev) => !prev);
+    } else {
+      setPlayer2SecondaryPanelVisible((prev) => !prev);
+    }
+    return;
+  }
+
+  if (!gameStarted || gameOver || !isPlayerTurnActive || turn <= 1 || secondaryTurnsRemaining === 0) {
+    return;
+  }
+
   setSecondaryModalPlayer(playerId);
   setSecondaryCarouselIndex(0);
   setSelectedSecondaryId(SECONDARY_AVATARS[0]?.id || null);
@@ -4638,6 +4740,25 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (enemyMainData.type === effect.enemyType) {
           totalDamage += effect.bonusDamage;
           notes.push(`Ventaja sobre avatar principal: +${effect.bonusDamage} PD`);
+        }
+        break;
+
+      case "enemy_main_type_steal_top_deck_each_turn":
+        if (enemyMainData.type === effect.enemyType) {
+          notes.push(
+            "Efecto activo: roba la carta superior del mazo rival y añádela a tu mano"
+          );
+        }
+        break;
+
+      case "first_before_named_attack_bonus":
+        if (
+          attackerSlot === "main" &&
+          !ownCombatState.previousTurnAttack &&
+          !ownCombatState.currentTurnAttack
+        ) {
+          totalDamage += effect.bonusDamage || 0;
+          notes.push(`Primer ataque en partida: +${effect.bonusDamage || 0} PD`);
         }
         break;
 
@@ -5280,6 +5401,7 @@ const handleConfirmSecondarySummon = () => {
       secondaryTurnTimeoutRef.current.player1 = null;
     }
     setPlayer1Secondary(summonedAvatar);
+    setPlayer1SecondaryPanelVisible(true);
     setPlayer1SecondaryTurnDisplay(summonedAvatar.turnsRemaining);
     setPlayer1ActiveSlot("main");
     setPlayer1History((prev) => [
@@ -5293,6 +5415,7 @@ const handleConfirmSecondarySummon = () => {
       secondaryTurnTimeoutRef.current.player2 = null;
     }
     setPlayer2Secondary(summonedAvatar);
+    setPlayer2SecondaryPanelVisible(true);
     setPlayer2SecondaryTurnDisplay(summonedAvatar.turnsRemaining);
     setPlayer2ActiveSlot("main");
     setPlayer2History((prev) => [
@@ -6766,6 +6889,7 @@ useEffect(() => {
             setEnemyCombatState={setPlayer2CombatState}
             mainHpFlash={player1MainHpFlash}
             secondaryHpFlash={player1SecondaryHpFlash}
+            turn={turn}
             isConfirmed={player1Confirmed}
             onChooseOtherAvatar={() => handleChooseOtherAvatar("player1")}
             onRequestResetHp={() => handleRequestResetHp("player1")}
@@ -6782,8 +6906,9 @@ useEffect(() => {
             onPassTurn={() => handlePassTurn("player1")}
             bgClass="left-side"
             secondaryAvatar={player1Secondary}
+            secondaryPanelVisible={player1SecondaryPanelVisible}
             secondaryTurnDisplay={player1SecondaryTurnDisplay}
-            onOpenSecondaryModal={() => handleOpenSecondaryModal("player1")}
+            onSecondaryButtonClick={() => handleOpenSecondaryModal("player1")}
             activeSlot={player1ActiveSlot}
             onSetActiveSlot={(slot) => handleSetActiveSlot("player1", slot)}
             onAttackRequest={(attack, attackerSlot) =>
@@ -6861,6 +6986,7 @@ useEffect(() => {
             setEnemyCombatState={setPlayer1CombatState}
             mainHpFlash={player2MainHpFlash}
             secondaryHpFlash={player2SecondaryHpFlash}
+            turn={turn}
             isConfirmed={player2Confirmed}
             onChooseOtherAvatar={() => handleChooseOtherAvatar("player2")}
             onRequestResetHp={() => handleRequestResetHp("player2")}
@@ -6877,8 +7003,9 @@ useEffect(() => {
             onPassTurn={() => handlePassTurn("player2")}
             bgClass="right-side"
             secondaryAvatar={player2Secondary}
+            secondaryPanelVisible={player2SecondaryPanelVisible}
             secondaryTurnDisplay={player2SecondaryTurnDisplay}
-            onOpenSecondaryModal={() => handleOpenSecondaryModal("player2")}
+            onSecondaryButtonClick={() => handleOpenSecondaryModal("player2")}
             activeSlot={player2ActiveSlot}
             onSetActiveSlot={(slot) => handleSetActiveSlot("player2", slot)}
             onAttackRequest={(attack, attackerSlot) =>
