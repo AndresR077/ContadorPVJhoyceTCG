@@ -1324,6 +1324,61 @@ const createCombatState = () => ({
   },
 });
 
+const CHRONICLES_STORAGE_KEY = "jhoyce-chronicles-v1";
+const MAX_CHRONICLE_SLOTS = 10;
+
+const createPlayerBattleStats = (mainAvatarName = "") => ({
+  mainAvatarName,
+  secondarySummonedName: null,
+  secondarySummonTurn: null,
+  secondaryTurnsSurvived: 0,
+  damageDealt: 0,
+  damageReceived: 0,
+  healingTotal: 0,
+  emPlacedTotal: 0,
+  attacksPerformed: 0,
+  strongestHit: 0,
+  manualHpAdjustments: 0,
+  manualPdAdjustments: 0,
+  switchesBetweenMainSecondary: 0,
+  effectsActivated: 0,
+  attackBlockedCount: 0,
+  emBlockedCount: 0,
+});
+
+const createBattleStatsState = (player1Name = "", player2Name = "") => ({
+  player1: createPlayerBattleStats(player1Name),
+  player2: createPlayerBattleStats(player2Name),
+});
+
+const createEmptyChronicleSlots = () => Array(MAX_CHRONICLE_SLOTS).fill(null);
+
+const formatChronicleDuration = (elapsedSeconds = 0) => {
+  const hours = Math.floor(elapsedSeconds / 3600);
+  const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+  const seconds = elapsedSeconds % 60;
+
+  return hours > 0
+    ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+    : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
+
+const formatChronicleSavedAt = (savedAt) => {
+  if (!savedAt) return "";
+
+  try {
+    return new Date(savedAt).toLocaleString("es-EC", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+};
+
 function PlayerPanel({
   panelPlayerId,
   playerLabel,
@@ -1356,6 +1411,9 @@ function PlayerPanel({
   rouletteRevealActive,
   battleIntroStaging,
   battleIntroVisible,
+  battleEndSequenceActive,
+  battleEndSequenceStage,
+  showVictoryContent,
   onAttackRequest,
   onHealRequest,
   ownEm,
@@ -1363,6 +1421,8 @@ function PlayerPanel({
   onDecreaseEm,
   gameStarted,
   gameOver,
+  winner,
+  chronicleEntry,
   isTurnActive,
   canPassTurn,
   onPassTurn,
@@ -1426,6 +1486,7 @@ const activeAvatar =
         bgPosition: "center top",
       }
     : mainAvatarView;
+const backdropAvatar = gameOver ? mainAvatarView : activeAvatar;
   const activeAvatarCardImage = getAvatarCardImage(activeAvatar.name) ?? activeAvatar.image;
   const displayedHeaderName =
     isRouletteActive && !gameStarted
@@ -1493,6 +1554,10 @@ const isAttackBlocked =
   !gameOver &&
   isTurnActive &&
   (ownCombatState?.attackBlockedTurns || 0) > 0;
+const isWinnerSide = gameOver && winner === name;
+const isLoserSide = gameOver && winner !== "Empate" && winner !== name;
+const isWinnerPanel = showVictoryContent && isWinnerSide;
+const isLoserPanel = showVictoryContent && isLoserSide;
 
 const renderEnergyControl = () => (
   <div
@@ -1762,14 +1827,26 @@ const handleToggleActiveAvatar = () => {
 
 return (
 <>
-<div className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""}`}>
+<div
+  className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""} ${
+    isWinnerPanel ? "gameover-winner-panel" : ""
+  } ${isLoserPanel ? "gameover-loser-panel" : ""}`}
+>
   <div className={`panel-bg ${activeHpFlash === "damage" ? "panel-bg-hit-dark" : ""}`}>
     <img
-  key={activeAvatar.image}
-  src={activeAvatar.image}
-  alt={activeAvatar.name}
+  key={backdropAvatar.image}
+  src={backdropAvatar.image}
+  alt={backdropAvatar.name}
   className={`panel-bg-image ${
-    !gameStarted
+    battleEndSequenceActive
+      ? battleEndSequenceStage === "duel"
+        ? "avatar-end-sequence-duel"
+        : "avatar-end-sequence-monochrome"
+      : gameOver
+      ? isWinnerSide
+        ? "avatar-gameover-winner"
+        : "avatar-gameover-loser"
+      : !gameStarted
       ? isConfirmed
         ? "avatar-ready"
         : "avatar-not-ready"
@@ -1784,8 +1861,8 @@ return (
     activeHpFlash === "damage" ? "panel-bg-image-damage-impact" : ""
   }`}
   style={{
-  objectFit: activeAvatar.bgFit || "cover",
-  objectPosition: activeAvatar.bgPosition || "center top",
+  objectFit: backdropAvatar.bgFit || "cover",
+  objectPosition: backdropAvatar.bgPosition || "center top",
   }}
 />
     <div
@@ -1800,6 +1877,23 @@ return (
     />
   </div>
 
+  {isLoserPanel && chronicleEntry ? (
+    <div className="panel-content battle-end-panel-content battle-end-panel-content-loser">
+      <BattleEndStatsCard entry={chronicleEntry} />
+    </div>
+  ) : isWinnerPanel ? (
+    <div className="panel-content battle-end-panel-content battle-end-panel-content-winner">
+      <div className="battle-end-winner-badge">
+        <span className="battle-end-winner-kicker">Victoria</span>
+        <span className="battle-end-winner-name">{name}</span>
+        {chronicleEntry && (
+          <span className="battle-end-winner-meta">
+            {chronicleEntry.duration} · {chronicleEntry.turnsPlayed} turnos
+          </span>
+        )}
+      </div>
+    </div>
+  ) : (
   <div
     className={`panel-content ${
       battleIntroStaging
@@ -2164,6 +2258,7 @@ return (
         )}
       </div>
   </div>
+  )}
 </div>
 {showAvatarCardModal && (
   <div
@@ -2227,9 +2322,11 @@ function HomeScreen({
   onStartBattle,
   onGoLibrary,
   onGoAvatars,
+  onGoChronicles,
   onLoadSavedBattle,
   onDeleteSavedBattle,
   savedBattleSlots,
+  chronicleSlots,
 }) {
   const [selectedHomeAction, setSelectedHomeAction] = useState(null);
   const [isLaunchingBattle, setIsLaunchingBattle] = useState(false);
@@ -2304,6 +2401,7 @@ function HomeScreen({
   };
 
   const hasSavedBattles = savedBattleSlots.some(Boolean);
+  const hasChronicles = chronicleSlots.some(Boolean);
 
   const formatSlotSavedAt = (savedAt) => {
     if (!savedAt) return "";
@@ -2394,6 +2492,19 @@ function HomeScreen({
                   : "No hay partidas guardadas"}
               </span>
             </button>
+
+            <button
+              type="button"
+              className={`home-load-card home-chronicles-card ${hasChronicles ? "has-saves" : ""}`}
+              onClick={onGoChronicles}
+            >
+              <span className="home-load-card-label">Crónicas</span>
+              <span className="home-load-card-subtitle">
+                {hasChronicles
+                  ? `${chronicleSlots.filter(Boolean).length} registro(s) disponible(s)`
+                  : "Aún no hay registros guardados"}
+              </span>
+            </button>
           </div>
 
           {homeSideActions
@@ -2427,146 +2538,544 @@ function HomeScreen({
       </div>
 
       {showLoadBattleModal && (
-        <div
-          className="home-load-overlay"
-          onClick={closeLoadBattleModal}
-        >
+        <>
           <div
-            className="home-load-modal"
-            onClick={(event) => event.stopPropagation()}
+            className="home-load-overlay"
+            onClick={closeLoadBattleModal}
           >
-            <OrnateFrameDecoration />
-            <button
-              type="button"
-              className={`home-load-trash-toggle ${isDeleteMode ? "active" : ""}`}
-              disabled={!hasSavedBattles}
-              onClick={() => {
-                setIsDeleteMode((prev) => !prev);
-                setSelectedDeleteSlot(null);
-                setShowDeleteConfirmModal(false);
-              }}
-              aria-label={isDeleteMode ? "Salir del modo eliminar" : "Entrar al modo eliminar"}
-              title={isDeleteMode ? "Salir del modo eliminar" : "Eliminar partida guardada"}
+            <div
+              className="home-load-modal"
+              onClick={(event) => event.stopPropagation()}
             >
-              <img
-                src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
-                alt=""
-              />
-            </button>
-
-            <h3>Cargar Partida</h3>
-            <p>Selecciona uno de los 3 slots disponibles.</p>
-
-            <div className="home-load-slots">
-              {[0, 1, 2].map((slotIndex) => {
-                const slot = savedBattleSlots[slotIndex];
-
-                return (
-                  <div
-                    key={slotIndex}
-                    className={`home-load-slot ${slot ? "filled" : "empty"} ${
-                      isDeleteMode && slot ? "delete-mode" : ""
-                    } ${
-                      selectedDeleteSlot === slotIndex ? "delete-selected" : ""
-                    }`}
-                    role={slot ? "button" : undefined}
-                    tabIndex={slot ? 0 : -1}
-                    aria-disabled={!slot}
-                    onClick={() => {
-                      if (!slot) return;
-
-                      if (isDeleteMode) {
-                        setSelectedDeleteSlot(slotIndex);
-                        return;
-                      }
-
-                      closeLoadBattleModal();
-                      onLoadSavedBattle(slotIndex);
-                    }}
-                    onKeyDown={(event) => {
-                      if (!slot) return;
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-
-                      if (isDeleteMode) {
-                        setSelectedDeleteSlot(slotIndex);
-                        return;
-                      }
-
-                      closeLoadBattleModal();
-                      onLoadSavedBattle(slotIndex);
-                    }}
-                  >
-                    <span className="home-load-slot-kicker">{`SLOT #${slotIndex + 1}`}</span>
-                    {slot ? (
-                      <>
-                        <span className="home-load-slot-title">
-                          {slot.player1Name} vs {slot.player2Name}
-                        </span>
-                        <span className="home-load-slot-meta">
-                          Turno {slot.turn} · {slot.formattedTime}
-                        </span>
-                        <span className="home-load-slot-meta">
-                          Guardada: {formatSlotSavedAt(slot.savedAt)}
-                        </span>
-                        {isDeleteMode && selectedDeleteSlot === slotIndex && (
-                          <button
-                            type="button"
-                            className="home-load-delete-action"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setShowDeleteConfirmModal(true);
-                            }}
-                          >
-                            ELIMINAR PARTIDA GUARDADA
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <span className="home-load-slot-empty">Vacío</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {showDeleteConfirmModal && selectedDeleteSlot !== null && (
-              <div
-                className="home-load-delete-confirm-overlay"
-                onClick={() => setShowDeleteConfirmModal(false)}
+              <OrnateFrameDecoration />
+              <button
+                type="button"
+                className={`home-load-trash-toggle ${isDeleteMode ? "active" : ""}`}
+                disabled={!hasSavedBattles}
+                onClick={() => {
+                  setIsDeleteMode((prev) => !prev);
+                  setSelectedDeleteSlot(null);
+                  setShowDeleteConfirmModal(false);
+                }}
+                aria-label={isDeleteMode ? "Salir del modo eliminar" : "Entrar al modo eliminar"}
+                title={isDeleteMode ? "Salir del modo eliminar" : "Eliminar partida guardada"}
               >
-                <div
-                  className="home-load-delete-confirm-modal"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <h4>¿DESEA ELIMINAR ESTA PARTIDA GUARDADA?</h4>
-                  <div className="home-load-delete-confirm-actions">
-                    <button
-                      type="button"
-                      className="home-load-delete-confirm-accept"
+                <img
+                  src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
+                  alt=""
+                />
+              </button>
+
+              <h3>Cargar Partida</h3>
+              <p>Selecciona uno de los 3 slots disponibles.</p>
+
+              <div className="home-load-slots">
+                {[0, 1, 2].map((slotIndex) => {
+                  const slot = savedBattleSlots[slotIndex];
+
+                  return (
+                    <div
+                      key={slotIndex}
+                      className={`home-load-slot ${slot ? "filled" : "empty"} ${
+                        isDeleteMode && slot ? "delete-mode" : ""
+                      } ${
+                        selectedDeleteSlot === slotIndex ? "delete-selected" : ""
+                      }`}
+                      role={slot ? "button" : undefined}
+                      tabIndex={slot ? 0 : -1}
+                      aria-disabled={!slot}
                       onClick={() => {
-                        onDeleteSavedBattle(selectedDeleteSlot);
-                        setShowDeleteConfirmModal(false);
-                        setSelectedDeleteSlot(null);
-                        setIsDeleteMode(false);
+                        if (!slot) return;
+
+                        if (isDeleteMode) {
+                          setSelectedDeleteSlot(slotIndex);
+                          return;
+                        }
+
+                        closeLoadBattleModal();
+                        onLoadSavedBattle(slotIndex);
+                      }}
+                      onKeyDown={(event) => {
+                        if (!slot) return;
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+
+                        if (isDeleteMode) {
+                          setSelectedDeleteSlot(slotIndex);
+                          return;
+                        }
+
+                        closeLoadBattleModal();
+                        onLoadSavedBattle(slotIndex);
                       }}
                     >
-                      ACEPTAR
-                    </button>
-                    <button
-                      type="button"
-                      className="home-load-delete-confirm-cancel"
-                      onClick={() => setShowDeleteConfirmModal(false)}
-                    >
-                      CANCELAR
-                    </button>
-                  </div>
+                      <span className="home-load-slot-kicker">{`SLOT #${slotIndex + 1}`}</span>
+                      {slot ? (
+                        <>
+                          <span className="home-load-slot-title">
+                            {slot.player1Name} vs {slot.player2Name}
+                          </span>
+                          <span className="home-load-slot-meta">
+                            Turno {slot.turn} · {slot.formattedTime}
+                          </span>
+                          <span className="home-load-slot-meta">
+                            Guardada: {formatSlotSavedAt(slot.savedAt)}
+                          </span>
+                          {isDeleteMode && selectedDeleteSlot === slotIndex && (
+                            <button
+                              type="button"
+                              className="home-load-delete-action"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setShowDeleteConfirmModal(true);
+                              }}
+                            >
+                              ELIMINAR PARTIDA GUARDADA
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span className="home-load-slot-empty">Vacío</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {showDeleteConfirmModal && selectedDeleteSlot !== null && (
+            <div
+              className="home-load-delete-confirm-overlay"
+              onClick={() => setShowDeleteConfirmModal(false)}
+            >
+              <div
+                className="home-load-delete-confirm-modal"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <h4>¿DESEA ELIMINAR ESTA PARTIDA GUARDADA?</h4>
+                <div className="home-load-delete-confirm-actions">
+                  <button
+                    type="button"
+                    className="home-load-delete-confirm-accept"
+                    onClick={() => {
+                      onDeleteSavedBattle(selectedDeleteSlot);
+                      setShowDeleteConfirmModal(false);
+                      setSelectedDeleteSlot(null);
+                      setIsDeleteMode(false);
+                    }}
+                  >
+                    ACEPTAR
+                  </button>
+                  <button
+                    type="button"
+                    className="home-load-delete-confirm-cancel"
+                    onClick={() => setShowDeleteConfirmModal(false)}
+                  >
+                    CANCELAR
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ChronicleDetail({ entry }) {
+  if (!entry) {
+    return (
+      <div className="chronicles-detail chronicles-detail-empty">
+        <h2>Crónicas</h2>
+        <p>No hay registros disponibles todavía.</p>
+      </div>
+    );
+  }
+
+  const renderPlayerBlock = (title, playerData) => {
+    const stats = playerData.stats;
+
+    return (
+      <div className="chronicles-player-block">
+        <h3>{title}</h3>
+        <div className="chronicles-stat-list">
+          <span><strong>Avatar principal:</strong> {stats.mainAvatarName}</span>
+          <span>
+            <strong>Secundario:</strong> {stats.secondarySummonedName || "No invocado"} ·{" "}
+            {stats.secondaryTurnsSurvived} turnos
+          </span>
+          <span><strong>Turno de invocación:</strong> {stats.secondarySummonTurn ?? "-"}</span>
+          <span><strong>Daño infligido:</strong> {stats.damageDealt}</span>
+          <span><strong>Daño recibido:</strong> {stats.damageReceived}</span>
+          <span><strong>Curación total:</strong> {stats.healingTotal}</span>
+          <span><strong>EM colocada:</strong> {stats.emPlacedTotal}</span>
+          <span><strong>Ataques realizados:</strong> {stats.attacksPerformed}</span>
+          <span><strong>Ataque más fuerte:</strong> {stats.strongestHit}</span>
+          <span><strong>Ajustes manuales PV:</strong> {stats.manualHpAdjustments}</span>
+          <span><strong>Ajustes manuales PD:</strong> {stats.manualPdAdjustments}</span>
+          <span><strong>Cambios principal/secundario:</strong> {stats.switchesBetweenMainSecondary}</span>
+          <span><strong>Efectos activados:</strong> {stats.effectsActivated}</span>
+          <span><strong>Bloqueos de ataque:</strong> {stats.attackBlockedCount}</span>
+          <span><strong>Bloqueos de EM:</strong> {stats.emBlockedCount}</span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="chronicles-detail">
+      <div className="chronicles-summary">
+        <h2>{entry.winner === "Empate" ? "Empate" : `Victoria de ${entry.winner}`}</h2>
+        <span><strong>Duración:</strong> {entry.duration}</span>
+        <span><strong>Turnos jugados:</strong> {entry.turnsPlayed}</span>
+        <span><strong>Avatar ganador:</strong> {entry.winnerMainAvatar}</span>
+        <span><strong>Avatar derrotado:</strong> {entry.loserMainAvatar}</span>
+        <span><strong>Registro:</strong> {formatChronicleSavedAt(entry.savedAt)}</span>
+      </div>
+
+      <div className="chronicles-players-grid">
+        {renderPlayerBlock(entry.player1.label, entry.player1)}
+        {renderPlayerBlock(entry.player2.label, entry.player2)}
+      </div>
+    </div>
+  );
+}
+
+function ChroniclesScreen({
+  onGoHome,
+  chronicleSlots,
+  selectedSlot,
+  onSelectSlot,
+  onDeleteChronicle,
+}) {
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedDeleteSlot, setSelectedDeleteSlot] = useState(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const selectedEntry = chronicleSlots[selectedSlot] || null;
+
+  return (
+    <div className="chronicles-screen">
+      <div className="library-topbar chronicles-topbar">
+        <button
+          className="back-home-btn icon-home-btn"
+          onClick={onGoHome}
+          type="button"
+        >
+          <img src="/ui/home-icon.png" alt="Inicio" className="home-icon" />
+        </button>
+        <h1>CRÓNICAS</h1>
+        <div className="library-topbar-right chronicles-topbar-right">
+          <button
+            type="button"
+            className={`chronicles-trash-toggle ${isDeleteMode ? "active" : ""}`}
+            aria-label={isDeleteMode ? "Salir del modo eliminar" : "Activar modo eliminar"}
+            title={isDeleteMode ? "Salir del modo eliminar" : "Activar modo eliminar"}
+            onClick={() => {
+              setIsDeleteMode((prev) => {
+                const nextValue = !prev;
+                if (!nextValue) {
+                  setSelectedDeleteSlot(null);
+                  setShowDeleteConfirmModal(false);
+                }
+                return nextValue;
+              });
+            }}
+          >
+            <img
+              src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
+              alt=""
+            />
+          </button>
+        </div>
+      </div>
+
+      <div className="chronicles-layout">
+        <div className="chronicles-slot-column">
+          {chronicleSlots.map((entry, index) => (
+            <div
+              key={`chronicle-slot-${index}`}
+              className={`chronicles-slot ${selectedSlot === index ? "active" : ""} ${
+                entry ? "filled" : "empty"
+              }`}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                onSelectSlot(index);
+
+                if (!entry) return;
+                if (isDeleteMode) {
+                  setSelectedDeleteSlot(index);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                onSelectSlot(index);
+
+                if (!entry) return;
+                if (isDeleteMode) {
+                  setSelectedDeleteSlot(index);
+                }
+              }}
+            >
+              <span className="chronicles-slot-kicker">{`SLOT #${index + 1}`}</span>
+              {entry ? (
+                <>
+                  <span className="chronicles-slot-title">
+                    {entry.winner === "Empate" ? "Empate" : entry.winner}
+                  </span>
+                  <span className="chronicles-slot-meta">{entry.duration} · {entry.turnsPlayed}T</span>
+                  {isDeleteMode && selectedDeleteSlot === index && (
+                    <button
+                      type="button"
+                      className="home-load-delete-action"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setShowDeleteConfirmModal(true);
+                      }}
+                    >
+                      ELIMINAR CRÓNICA
+                    </button>
+                  )}
+                </>
+              ) : (
+                <span className="chronicles-slot-empty">Vacío</span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <ChronicleDetail entry={selectedEntry} />
+      </div>
+
+      {showDeleteConfirmModal && selectedDeleteSlot !== null && (
+        <div
+          className="home-load-delete-confirm-overlay"
+          onClick={() => setShowDeleteConfirmModal(false)}
+        >
+          <div
+            className="home-load-delete-confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h4>¿DESEA ELIMINAR ESTA CRÓNICA?</h4>
+            <div className="home-load-delete-confirm-actions">
+              <button
+                type="button"
+                className="home-load-delete-confirm-accept"
+                onClick={() => {
+                  onDeleteChronicle(selectedDeleteSlot);
+                  setShowDeleteConfirmModal(false);
+                  setSelectedDeleteSlot(null);
+                  setIsDeleteMode(false);
+                }}
+              >
+                ACEPTAR
+              </button>
+              <button
+                type="button"
+                className="home-load-delete-confirm-cancel"
+                onClick={() => setShowDeleteConfirmModal(false)}
+              >
+                CANCELAR
+              </button>
+            </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function BattleEndStatsCard({ entry }) {
+  if (!entry) return null;
+
+  const winnerPlayerData =
+    entry.winner === entry.player1.label ? entry.player1 : entry.player2;
+  const loserPlayerData =
+    entry.winner === entry.player1.label ? entry.player2 : entry.player1;
+  const winnerIsPlayer1 = entry.winner === entry.player1.label;
+  const winnerToneClass =
+    winnerIsPlayer1
+      ? "battle-end-theme-red"
+      : entry.winner === entry.player2.label
+      ? "battle-end-theme-blue"
+      : "battle-end-theme-neutral";
+  const winnerSideClass = winnerIsPlayer1 ? "battle-end-player-card-red" : "battle-end-player-card-blue";
+  const loserSideClass = winnerIsPlayer1 ? "battle-end-player-card-blue" : "battle-end-player-card-red";
+  const winnerPillClass = winnerIsPlayer1 ? "battle-end-name-pill-red" : "battle-end-name-pill-blue";
+  const loserPillClass = winnerIsPlayer1 ? "battle-end-name-pill-blue" : "battle-end-name-pill-red";
+  const winnerCompareValueClass = winnerIsPlayer1
+    ? "battle-end-compare-value-red"
+    : "battle-end-compare-value-blue";
+  const loserCompareValueClass = winnerIsPlayer1
+    ? "battle-end-compare-value-blue"
+    : "battle-end-compare-value-red";
+  const winnerTrackLabelClass = winnerIsPlayer1
+    ? "battle-end-compare-track-label-red"
+    : "battle-end-compare-track-label-blue";
+  const loserTrackLabelClass = winnerIsPlayer1
+    ? "battle-end-compare-track-label-blue"
+    : "battle-end-compare-track-label-red";
+  const winnerFillClass = winnerIsPlayer1
+    ? "battle-end-compare-fill-red"
+    : "battle-end-compare-fill-blue";
+  const loserFillClass = winnerIsPlayer1
+    ? "battle-end-compare-fill-blue"
+    : "battle-end-compare-fill-red";
+  const winnerStats = winnerPlayerData.stats;
+  const loserStats = loserPlayerData.stats;
+
+  const compareMetrics = [
+    { label: "Daño", winnerValue: winnerStats.damageDealt, loserValue: loserStats.damageDealt },
+    {
+      label: "Recibido",
+      winnerValue: winnerStats.damageReceived,
+      loserValue: loserStats.damageReceived,
+    },
+    { label: "Curación", winnerValue: winnerStats.healingTotal, loserValue: loserStats.healingTotal },
+    { label: "EM", winnerValue: winnerStats.emPlacedTotal, loserValue: loserStats.emPlacedTotal },
+    {
+      label: "Ataques",
+      winnerValue: winnerStats.attacksPerformed,
+      loserValue: loserStats.attacksPerformed,
+    },
+    {
+      label: "Golpe Máx.",
+      winnerValue: winnerStats.strongestHit,
+      loserValue: loserStats.strongestHit,
+    },
+  ];
+
+  const renderPlayerDetails = (title, playerData, toneClass, sideClass) => {
+    const stats = playerData.stats;
+    const detailItems = [
+      { label: "Secundario", value: stats.secondarySummonedName || "No invocado", long: true },
+      { label: "Supervivencia", value: `${stats.secondaryTurnsSurvived}T` },
+      { label: "Invocación", value: stats.secondarySummonTurn ? `T${stats.secondarySummonTurn}` : "-" },
+      { label: "Ajustes PV/PD", value: stats.manualAdjustments },
+      { label: "Cambios", value: stats.secondarySwitches },
+      { label: "Efectos", value: stats.effectsActivated },
+      { label: "Bloq. ataque", value: stats.attackBlockedCount },
+      { label: "Bloq. EM", value: stats.emBlockedCount },
+    ];
+
+    return (
+      <div className={`battle-end-player-card ${toneClass} ${sideClass}`}>
+        <div className="battle-end-player-card-head">
+          <span className="battle-end-player-kicker">{title}</span>
+          <h4>{playerData.label}</h4>
+        </div>
+        <div className="battle-end-detail-badges">
+          {detailItems.map((item) => (
+            <div
+              key={`${title}-${item.label}`}
+              className={`battle-end-detail-badge ${item.long ? "battle-end-detail-badge-wide" : ""}`}
+            >
+              <span className="battle-end-detail-label">{item.label}</span>
+              <span className="battle-end-detail-value">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+      <div className={`battle-end-stats-card ${winnerToneClass}`}>
+      <OrnateFrameDecoration />
+      <div className="battle-end-stats-card-header">
+        <h3>{entry.winner === "Empate" ? "Empate" : `${entry.winner} GANA!`}</h3>
+      </div>
+
+      <div className="battle-end-stats-scroll">
+        <div className="battle-end-stats-summary">
+          <div className="battle-end-summary-chip">
+            <span className="battle-end-summary-label">Duración</span>
+            <strong>{entry.duration}</strong>
+          </div>
+          <div className="battle-end-summary-chip">
+            <span className="battle-end-summary-label">Turnos</span>
+            <strong>{entry.turnsPlayed}</strong>
+          </div>
+          <div className="battle-end-summary-chip">
+            <span className="battle-end-summary-label">Avatar ganador</span>
+            <strong>{entry.winnerMainAvatar}</strong>
+          </div>
+          <div className="battle-end-summary-chip">
+            <span className="battle-end-summary-label">Avatar derrotado</span>
+            <strong>{entry.loserMainAvatar}</strong>
+          </div>
+        </div>
+
+        <div className="battle-end-compare-section">
+          <div className="battle-end-section-head">
+            <span className="battle-end-section-kicker">Comparativa</span>
+            <div className="battle-end-section-note">
+              <span className={`battle-end-name-pill ${winnerPillClass}`}>
+                {winnerPlayerData.label}
+              </span>
+              <span className={`battle-end-name-pill ${loserPillClass}`}>
+                {loserPlayerData.label}
+              </span>
+            </div>
+          </div>
+          <div className="battle-end-compare-list">
+            {compareMetrics.map((metric) => {
+              const maxValue = Math.max(metric.winnerValue, metric.loserValue, 1);
+              const winnerWidth = `${(metric.winnerValue / maxValue) * 100}%`;
+              const loserWidth = `${(metric.loserValue / maxValue) * 100}%`;
+
+              return (
+                <div key={metric.label} className="battle-end-compare-row">
+                  <div className="battle-end-compare-topline">
+                    <span>{metric.label}</span>
+                    <div className="battle-end-compare-values">
+                      <span className={`battle-end-compare-value ${winnerCompareValueClass}`}>
+                        {metric.winnerValue}
+                      </span>
+                      <span className="battle-end-compare-divider">/</span>
+                      <span className={`battle-end-compare-value ${loserCompareValueClass}`}>
+                        {metric.loserValue}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="battle-end-compare-bars">
+                    <div className="battle-end-compare-track-row">
+                      <span className={`battle-end-compare-track-label ${winnerTrackLabelClass}`}>
+                        Ganador
+                      </span>
+                      <div className="battle-end-compare-track">
+                        <div
+                          className={`battle-end-compare-fill ${winnerFillClass}`}
+                          style={{ width: winnerWidth }}
+                        />
+                      </div>
+                    </div>
+                    <div className="battle-end-compare-track-row">
+                      <span className={`battle-end-compare-track-label ${loserTrackLabelClass}`}>
+                        Perdedor
+                      </span>
+                      <div className="battle-end-compare-track">
+                        <div
+                          className={`battle-end-compare-fill ${loserFillClass}`}
+                          style={{ width: loserWidth }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="battle-end-stats-grid">
+          {renderPlayerDetails("Ganador", winnerPlayerData, "battle-end-player-card-winner", winnerSideClass)}
+          {renderPlayerDetails("Derrotado", loserPlayerData, "battle-end-player-card-loser", loserSideClass)}
+        </div>
+      </div>
     </div>
   );
 }
@@ -3627,10 +4136,14 @@ export default function App() {
   const [isBattleIntroStaging, setIsBattleIntroStaging] = useState(false);
   const [battleIntroRevealPlayer1, setBattleIntroRevealPlayer1] = useState(false);
   const [battleIntroRevealPlayer2, setBattleIntroRevealPlayer2] = useState(false);
+  const [isBattleEndSequenceActive, setIsBattleEndSequenceActive] = useState(false);
+  const [battleEndSequenceStage, setBattleEndSequenceStage] = useState("idle");
+  const [showVictoryContent, setShowVictoryContent] = useState(false);
   const [showResetHpConfirm, setShowResetHpConfirm] = useState(false);
   const [resetTargetPlayer, setResetTargetPlayer] = useState(null);
   const battleStartLaunchTimeoutRef = useRef(null);
   const battleIntroTimeoutsRef = useRef([]);
+  const battleEndSequenceTimeoutsRef = useRef([]);
 
   const [showAdjustHpModal, setShowAdjustHpModal] = useState(false);
   const [adjustTargetPlayer, setAdjustTargetPlayer] = useState(null);
@@ -3673,6 +4186,9 @@ export default function App() {
   const [savedBattleSlots, setSavedBattleSlots] = useState(
     Array(MAX_BATTLE_SAVE_SLOTS).fill(null)
   );
+  const [chronicleSlots, setChronicleSlots] = useState(createEmptyChronicleSlots);
+  const [selectedChronicleSlot, setSelectedChronicleSlot] = useState(0);
+  const [loadedBattleSlotIndex, setLoadedBattleSlotIndex] = useState(null);
   const [saveToastMessage, setSaveToastMessage] = useState("");
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -3680,6 +4196,10 @@ export default function App() {
 
   const [player1Secondary, setPlayer1Secondary] = useState(null);
   const [player2Secondary, setPlayer2Secondary] = useState(null);
+  const [battleStats, setBattleStats] = useState(
+    createBattleStatsState(AVATAR_OPTIONS[0].name, AVATAR_OPTIONS[1].name)
+  );
+  const [latestChronicleEntry, setLatestChronicleEntry] = useState(null);
   const [player1SecondaryPanelVisible, setPlayer1SecondaryPanelVisible] = useState(false);
   const [player2SecondaryPanelVisible, setPlayer2SecondaryPanelVisible] = useState(false);
   const [player1SecondaryTurnDisplay, setPlayer1SecondaryTurnDisplay] = useState(null);
@@ -3743,6 +4263,75 @@ export default function App() {
     }, 2600);
   };
 
+  const updateBattleStatsForPlayer = (playerId, updater) => {
+    setBattleStats((prev) => {
+      const nextPlayerStats = updater(prev[playerId]);
+      if (!nextPlayerStats || nextPlayerStats === prev[playerId]) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [playerId]: nextPlayerStats,
+      };
+    });
+  };
+
+  const incrementBattleStats = (playerId, updates) => {
+    updateBattleStatsForPlayer(playerId, (current) => ({
+      ...current,
+      ...Object.entries(updates).reduce((acc, [key, value]) => {
+        acc[key] = (current[key] || 0) + value;
+        return acc;
+      }, {}),
+    }));
+  };
+
+  const persistChronicleSlots = (slots) => {
+    setChronicleSlots(slots);
+
+    try {
+      localStorage.setItem(CHRONICLES_STORAGE_KEY, JSON.stringify(slots));
+    } catch {
+      // Ignore local persistence errors and keep in-memory state.
+    }
+  };
+
+  const clearBattleEndSequence = () => {
+    battleEndSequenceTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    battleEndSequenceTimeoutsRef.current = [];
+    setIsBattleEndSequenceActive(false);
+    setBattleEndSequenceStage("idle");
+    setShowVictoryContent(false);
+  };
+
+  const buildBattleChronicleEntry = (winnerName) => {
+    const winnerPlayerId =
+      winnerName === player1Name ? "player1" : winnerName === player2Name ? "player2" : null;
+    const loserPlayerId =
+      winnerPlayerId === "player1" ? "player2" : winnerPlayerId === "player2" ? "player1" : null;
+
+    const player1Stats = battleStats.player1;
+    const player2Stats = battleStats.player2;
+
+    return {
+      savedAt: new Date().toISOString(),
+      winner: winnerName,
+      duration: formatChronicleDuration(elapsedSeconds),
+      turnsPlayed: turn,
+      winnerMainAvatar: winnerPlayerId ? (winnerPlayerId === "player1" ? player1Name : player2Name) : "Empate",
+      loserMainAvatar: loserPlayerId ? (loserPlayerId === "player1" ? player1Name : player2Name) : "Empate",
+      player1: {
+        label: player1Name,
+        stats: player1Stats,
+      },
+      player2: {
+        label: player2Name,
+        stats: player2Stats,
+      },
+    };
+  };
+
   const persistSavedBattleSlots = (slots) => {
     setSavedBattleSlots(slots);
 
@@ -3798,6 +4387,7 @@ export default function App() {
     }
 
     if (markPlaced && delta > 0) {
+      incrementBattleStats(playerId, { emPlacedTotal: delta });
       const setCombatState = isPlayer1 ? setPlayer1CombatState : setPlayer2CombatState;
       setCombatState((prev) => ({
         ...prev,
@@ -3841,6 +4431,7 @@ export default function App() {
     player2SecondaryTurnDisplay,
     player1ActiveSlot,
     player2ActiveSlot,
+    battleStats: cloneBattleValue(battleStats),
     player1AttackModifiers: cloneBattleValue(player1AttackModifiers),
     player2AttackModifiers: cloneBattleValue(player2AttackModifiers),
   });
@@ -3882,6 +4473,10 @@ export default function App() {
     setPlayer2SecondaryTurnDisplay(snapshot.player2SecondaryTurnDisplay);
     setPlayer1ActiveSlot(snapshot.player1ActiveSlot || "main");
     setPlayer2ActiveSlot(snapshot.player2ActiveSlot || "main");
+    setBattleStats(
+      snapshot.battleStats ||
+        createBattleStatsState(snapshot.player1Name || player1Name, snapshot.player2Name || player2Name)
+    );
     setPlayer1AttackModifiers(snapshot.player1AttackModifiers || {});
     setPlayer2AttackModifiers(snapshot.player2AttackModifiers || {});
     setPlayer1MainHpFlash("");
@@ -3903,6 +4498,7 @@ export default function App() {
     setShowResetHpConfirm(false);
     setShowSecondaryModal(false);
     setShowSummonCardPreview(false);
+    clearBattleEndSequence();
   };
 
   const pushBattleHistorySnapshot = () => {
@@ -3929,7 +4525,10 @@ export default function App() {
   };
 
   const handleSaveBattleAndExit = () => {
-    const nextSlotIndex = getNextBattleSaveSlotIndex();
+    const nextSlotIndex =
+      loadedBattleSlotIndex !== null
+        ? loadedBattleSlotIndex
+        : getNextBattleSaveSlotIndex();
     const snapshot = createBattleSnapshot();
     const savedAt = new Date().toISOString();
 
@@ -3953,6 +4552,19 @@ export default function App() {
     );
   };
 
+  const handleSaveChronicleAndExit = () => {
+    persistCurrentChronicle();
+    resetGameState();
+    setShowExitConfirm(false);
+    navigateWithTransition("home");
+  };
+
+  const handleExitWithoutSaving = () => {
+    resetGameState();
+    setShowExitConfirm(false);
+    navigateWithTransition("home");
+  };
+
   const handleLoadSavedBattle = (slotIndex) => {
     const slot = savedBattleSlots[slotIndex];
     if (!slot?.snapshot) return;
@@ -3961,6 +4573,7 @@ export default function App() {
 
     setTimeout(() => {
       clearBattleHistory();
+      setLoadedBattleSlotIndex(slotIndex);
       applyBattleSnapshot(slot.snapshot);
       setScreen("battle");
       setScreenVisible(true);
@@ -3974,6 +4587,40 @@ export default function App() {
     nextSlots[slotIndex] = null;
     persistSavedBattleSlots(nextSlots);
     showSaveToast(`PARTIDA ELIMINADA DEL SLOT #${slotIndex + 1}`);
+  };
+
+  const handleDeleteChronicle = (slotIndex) => {
+    const nextSlots = [...chronicleSlots];
+    if (!nextSlots[slotIndex]) return;
+
+    nextSlots[slotIndex] = null;
+    persistChronicleSlots(nextSlots);
+
+    if (selectedChronicleSlot === slotIndex) {
+      const nextSelectedSlot = nextSlots.findIndex(Boolean);
+      setSelectedChronicleSlot(nextSelectedSlot >= 0 ? nextSelectedSlot : 0);
+    }
+
+    showSaveToast(`CRÓNICA ELIMINADA DEL SLOT #${slotIndex + 1}`);
+  };
+
+  const persistCurrentChronicle = () => {
+    if (!winner || !latestChronicleEntry) return;
+
+    const nextChronicleSlots = [latestChronicleEntry, ...chronicleSlots.filter(Boolean)].slice(
+      0,
+      MAX_CHRONICLE_SLOTS
+    );
+    const normalizedChronicleSlots = Array.from(
+      { length: MAX_CHRONICLE_SLOTS },
+      (_, index) => nextChronicleSlots[index] || null
+    );
+
+    persistChronicleSlots(normalizedChronicleSlots);
+    setSelectedChronicleSlot(0);
+    showSaveToast(
+      "LA PARTIDA ACTUAL SE GUARDÓ EN EL APARTADO CRÓNICAS, YA PUEDES REVISARLO."
+    );
   };
 
   const handleUndoBattleAction = () => {
@@ -4040,6 +4687,24 @@ useEffect(() => {
     setSavedBattleSlots(normalizedSlots);
   } catch {
     setSavedBattleSlots(Array(MAX_BATTLE_SAVE_SLOTS).fill(null));
+  }
+}, []);
+
+useEffect(() => {
+  try {
+    const storedChronicles = localStorage.getItem(CHRONICLES_STORAGE_KEY);
+    if (!storedChronicles) return;
+
+    const parsedChronicles = JSON.parse(storedChronicles);
+    if (!Array.isArray(parsedChronicles)) return;
+
+    const normalizedChronicles = Array.from(
+      { length: MAX_CHRONICLE_SLOTS },
+      (_, index) => parsedChronicles[index] || null
+    );
+    setChronicleSlots(normalizedChronicles);
+  } catch {
+    setChronicleSlots(createEmptyChronicleSlots());
   }
 }, []);
 
@@ -4190,16 +4855,20 @@ const resetGameState = (options = {}) => {
   setIsBattleIntroStaging(false);
   setBattleIntroRevealPlayer1(false);
   setBattleIntroRevealPlayer2(false);
+  clearBattleEndSequence();
 
   setGameStarted(false);
   setStartingPlayer(null);
   setCurrentTurnPlayer(null);
   setWinner(null);
+  setLatestChronicleEntry(null);
+  setLoadedBattleSlotIndex(null);
   setElapsedSeconds(0);
   setTimerRunning(false);
 
   setPlayer1Secondary(null);
   setPlayer2Secondary(null);
+  setBattleStats(createBattleStatsState(nextPlayer1Avatar.name, nextPlayer2Avatar.name));
   setPlayer1SecondaryPanelVisible(false);
   setPlayer2SecondaryPanelVisible(false);
   setPlayer1SecondaryTurnDisplay(null);
@@ -4244,6 +4913,8 @@ useEffect(() => {
     }
     battleIntroTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
     battleIntroTimeoutsRef.current = [];
+    battleEndSequenceTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    battleEndSequenceTimeoutsRef.current = [];
   };
 }, []);
 
@@ -4265,10 +4936,41 @@ useEffect(() => {
   const winnerFrame = requestAnimationFrame(() => {
     setWinner(nextWinner);
     setTimerRunning(false);
+    setShowVictoryContent(false);
+    setIsBattleEndSequenceActive(true);
+    setBattleEndSequenceStage("duel");
+    battleEndSequenceTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+
+    const monochromeTimeout = setTimeout(() => {
+      setBattleEndSequenceStage("monochrome");
+    }, 1500);
+
+    const titleTimeout = setTimeout(() => {
+      setBattleEndSequenceStage("title");
+    }, 2650);
+
+    const revealTimeout = setTimeout(() => {
+      setIsBattleEndSequenceActive(false);
+      setBattleEndSequenceStage("idle");
+      setShowVictoryContent(true);
+      battleEndSequenceTimeoutsRef.current = [];
+    }, 4100);
+
+    battleEndSequenceTimeoutsRef.current = [
+      monochromeTimeout,
+      titleTimeout,
+      revealTimeout,
+    ];
   });
 
   return () => cancelAnimationFrame(winnerFrame);
 }, [gameStarted, winner, player1Hp, player2Hp, player1Name, player2Name]);
+
+useEffect(() => {
+  if (!gameStarted || !winner) return;
+
+  setLatestChronicleEntry(buildBattleChronicleEntry(winner));
+}, [gameStarted, winner, battleStats, elapsedSeconds, turn]);
 
 const handleOpenSecondaryModal = (playerId) => {
   const isPlayer1 = playerId === "player1";
@@ -4404,6 +5106,10 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
 
     if (healed <= 0) return;
     pushBattleHistorySnapshot();
+    incrementBattleStats(playerId, {
+      healingTotal: healed,
+      manualHpAdjustments: 1,
+    });
 
     if (isPlayer1) {
       player1HpRef.current = healedHp;
@@ -4433,6 +5139,10 @@ const applyHealToTarget = (playerId, amount, targetSlot) => {
 
     if (healed <= 0) return;
     pushBattleHistorySnapshot();
+    incrementBattleStats(playerId, {
+      healingTotal: healed,
+      manualHpAdjustments: 1,
+    });
 
     if (isPlayer1) {
       player1SecondaryRef.current = {
@@ -4669,14 +5379,19 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
   if (ownActiveEm < attackCost) return;
   pushBattleHistorySnapshot();
+  incrementBattleStats(attackerId, { attacksPerformed: 1 });
 
   let totalDamage = adjustedAttackDamage;
   let selfHeal = 0;
   let selfDamage = 0;
   let healOnSecondaryDefeat = 0;
   let blockEnemyEmTurns = 0;
+  let effectActivationsTriggered = 0;
   let blockEnemyEmIfMainHpAtOrBelow = null;
   const notes = [];
+  const registerEffectActivation = () => {
+    effectActivationsTriggered += 1;
+  };
 
   const addOwnHistory = (text) => {
     setOwnHistory((prev) => [text, ...prev.slice(0, 5)]);
@@ -4712,16 +5427,19 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
       case "self_heal":
         selfHeal += effect.heal || 0;
+        registerEffectActivation();
         break;
 
       case "self_damage":
         selfDamage += effect.selfDamage || 0;
+        registerEffectActivation();
         break;
 
       case "enemy_hp_below_or_equal":
         if (targetCurrentHp <= effect.threshold) {
           totalDamage += effect.bonusDamage;
           notes.push(`Efecto activo: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4733,6 +5451,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (attackerSlot === "main" && ownCombatState.previousTurnAttack === effect.attackName) {
           totalDamage += effect.bonusDamage;
           notes.push(`Combo previo: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4740,6 +5459,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (enemyMainData.type === effect.enemyType) {
           totalDamage += effect.bonusDamage;
           notes.push(`Ventaja sobre avatar principal: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4748,6 +5468,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           notes.push(
             "Efecto activo: roba la carta superior del mazo rival y añádela a tu mano"
           );
+          registerEffectActivation();
         }
         break;
 
@@ -4759,6 +5480,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         ) {
           totalDamage += effect.bonusDamage || 0;
           notes.push(`Primer ataque en partida: +${effect.bonusDamage || 0} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4770,6 +5492,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         ) {
           totalDamage += effect.bonusDamage;
           notes.push(`Ataque consecutivo: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4785,6 +5508,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           notes.push(
             `Escudo activo: -${effect.amount} PD recibidos por ${effect.durationTurns} turnos`
           );
+          registerEffectActivation();
         }
         break;
 
@@ -4800,6 +5524,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           notes.push(
             `Marca activa: enemigo recibe +${effect.amount} PD por ${effect.durationTurns} turnos`
           );
+          registerEffectActivation();
         }
         break;
 
@@ -4807,6 +5532,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (targetType === effect.enemyType) {
           totalDamage += effect.bonusDamage;
           notes.push(`Ventaja de tipo: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4814,6 +5540,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (enemyMainData.type === effect.enemyType || enemySecondary?.type === effect.enemyType) {
           totalDamage += effect.bonusDamage;
           notes.push(`Ventaja de tipo: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4821,6 +5548,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (attackerCurrentHp < effect.threshold) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por PV bajos: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4835,6 +5563,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           },
         }));
         notes.push(`El próximo ataque del rival se reduce en ${reductionAmount} PD`);
+        registerEffectActivation();
         break;
       }
 
@@ -4842,6 +5571,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (enemyMainEm > ownMainEm) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por ventaja de EM rival: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4849,6 +5579,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (enemyMainEm <= 0) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por rival sin EM: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4858,11 +5589,13 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           if (effect.bonusDamage) {
             notes.push(`Bono por EM ligada el turno anterior: +${effect.bonusDamage} PD`);
           }
+          registerEffectActivation();
         }
         break;
 
       case "if_attack_defeats_secondary_self_heal":
         healOnSecondaryDefeat += effect.heal || 0;
+        registerEffectActivation();
         break;
 
       case "grant_enemy_next_turn_bonus_damage":
@@ -4889,6 +5622,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
             );
           }
         }
+        registerEffectActivation();
         break;
 
       case "medusa_first_attack_or_block_em":
@@ -4900,6 +5634,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           blockEnemyEmTurns = 1;
           notes.push("El rival no podrá ligar EM en su próximo turno");
         }
+        registerEffectActivation();
         break;
 
       case "poison_until_secondary_leaves":
@@ -4911,12 +5646,14 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           },
         }));
         notes.push(`Veneno activo: ${effect.amount || 0} PV por turno`);
+        registerEffectActivation();
         break;
 
       case "prismara_first_attack_or_draw":
         if (attackerAttackCount === 0) {
           selfHeal += effect.heal || 0;
           notes.push(`Primer ataque de Prismara: +${effect.heal || 0} PV`);
+          registerEffectActivation();
         }
         break;
 
@@ -4930,6 +5667,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
             },
           }));
           notes.push(`Tu avatar principal reduce ${effect.amount} PD del próximo ataque`);
+          registerEffectActivation();
         }
         break;
 
@@ -4943,6 +5681,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
             },
           }));
           notes.push(`La próxima vez ${attack.name} gana +${effect.bonusDamage || 0} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4950,6 +5689,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if (attackerSecondary?.type === effect.secondaryType) {
           totalDamage += effect.bonusDamage;
           notes.push(`Bono por avatar secundario: +${effect.bonusDamage} PD`);
+          registerEffectActivation();
         }
         break;
 
@@ -4963,6 +5703,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           if (effect.heal) {
             notes.push(`Efecto activo: +${effect.heal} PV`);
           }
+          registerEffectActivation();
         }
         break;
 
@@ -4975,6 +5716,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
             setPlayer1Em((prev) => Math.max(0, prev - amountToRemove));
           }
           notes.push(`El rival pierde ${amountToRemove} EM`);
+          registerEffectActivation();
         }
         break;
       }
@@ -4983,6 +5725,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         if ((effect.amount || 0) > 0) {
           adjustPlayerSlotEm(attackerId, attackerSlot, effect.amount || 0);
           notes.push(`Recupera +${effect.amount} EM`);
+          registerEffectActivation();
         }
         break;
 
@@ -4995,6 +5738,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   if (targetSlot === "main" && enemyCombatState.extraDamageTaken.turnsLeft > 0) {
     totalDamage += enemyCombatState.extraDamageTaken.amount;
     notes.push(`Marca activa: +${enemyCombatState.extraDamageTaken.amount} PD`);
+    registerEffectActivation();
   }
 
   if (ownCombatState.nextAttackBonus.amount !== 0) {
@@ -5014,6 +5758,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         amount: 0,
       },
     }));
+    registerEffectActivation();
   }
 
   const storedAttackBonus = ownCombatState.pendingAttackBonuses?.[attack.name] || 0;
@@ -5027,6 +5772,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         [attack.name]: 0,
       },
     }));
+    registerEffectActivation();
   }
 
   if (
@@ -5044,6 +5790,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           }
         : prev
     );
+    registerEffectActivation();
   }
 
   if (ownCombatState.nextAttackReduction.amount > 0) {
@@ -5055,6 +5802,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         amount: 0,
       },
     }));
+    registerEffectActivation();
   }
 
   processEffect(attack.effect);
@@ -5069,14 +5817,25 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   if (targetSlot === "main" && enemyCombatState.damageReduction.turnsLeft > 0) {
     totalDamage = Math.max(0, totalDamage - enemyCombatState.damageReduction.amount);
     notes.push(`Daño reducido en ${enemyCombatState.damageReduction.amount}`);
+    registerEffectActivation();
   }
 
   if (targetSlot === "main") {
+    const actualDamageDone = Math.min(totalDamage, enemyMainHp);
     const newMainHp = Math.max(0, enemyMainHp - totalDamage);
     setEnemyMainHp(newMainHp);
     if (totalDamage > 0) {
       triggerEnemyFlash("main", "damage");
       showEnemyPopup("main", `-${totalDamage} PD`, "damage");
+    }
+    if (actualDamageDone > 0) {
+      updateBattleStatsForPlayer(attackerId, (current) => ({
+        ...current,
+        damageDealt: current.damageDealt + actualDamageDone,
+        strongestHit: Math.max(current.strongestHit, actualDamageDone),
+      }));
+      const defenderId = isPlayer1 ? "player2" : "player1";
+      incrementBattleStats(defenderId, { damageReceived: actualDamageDone });
     }
     if (
       blockEnemyEmIfMainHpAtOrBelow !== null &&
@@ -5084,6 +5843,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     ) {
       blockEnemyEmTurns = Math.max(blockEnemyEmTurns, 1);
       notes.push("El rival no podrá ligar EM en su próximo turno");
+      registerEffectActivation();
     }
   } else if (enemySecondary) {
     if (enemySecondary.halveNextDamage) {
@@ -5094,11 +5854,13 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           ? {
               ...prev,
               halveNextDamage: false,
-            }
-          : prev
+          }
+        : prev
       );
+      registerEffectActivation();
     }
 
+    const actualDamageDone = Math.min(totalDamage, enemySecondary.currentHp);
     const newSecondaryHp = Math.max(0, enemySecondary.currentHp - totalDamage);
 
     if (newSecondaryHp <= 0) {
@@ -5133,9 +5895,20 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
         showEnemyPopup("secondary", `-${totalDamage} PD`, "damage");
       }
     }
+
+    if (actualDamageDone > 0) {
+      updateBattleStatsForPlayer(attackerId, (current) => ({
+        ...current,
+        damageDealt: current.damageDealt + actualDamageDone,
+        strongestHit: Math.max(current.strongestHit, actualDamageDone),
+      }));
+      const defenderId = isPlayer1 ? "player2" : "player1";
+      incrementBattleStats(defenderId, { damageReceived: actualDamageDone });
+    }
   }
 
   if (selfHeal > 0) {
+    incrementBattleStats(attackerId, { healingTotal: selfHeal });
     if (attackerSlot === "main") {
       const healed = Math.min(attackerMainData.hp, ownMainHp + selfHeal) - ownMainHp;
       if (healed > 0) {
@@ -5159,6 +5932,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   }
 
   if (selfDamage > 0) {
+    incrementBattleStats(attackerId, { damageReceived: selfDamage });
     if (attackerSlot === "main") {
       setOwnMainHp((prev) => Math.max(0, prev - selfDamage));
       triggerOwnFlash("main", "damage");
@@ -5237,6 +6011,10 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     }));
   }
 
+  if (effectActivationsTriggered > 0) {
+    incrementBattleStats(attackerId, { effectsActivated: effectActivationsTriggered });
+  }
+
   const historyText =
     notes.length > 0
       ? `${ownTargetName} - ${attack.name} sobre ${enemyTargetName}: -${totalDamage} PD | ${notes.join(" | ")}`
@@ -5250,9 +6028,15 @@ const handleSetActiveSlot = (playerId, slot) => {
 
   if (playerId === "player1") {
     if (slot === "secondary" && !player1Secondary) return;
+    if (player1ActiveSlot !== slot) {
+      incrementBattleStats("player1", { switchesBetweenMainSecondary: 1 });
+    }
     setPlayer1ActiveSlot(slot);
   } else {
     if (slot === "secondary" && !player2Secondary) return;
+    if (player2ActiveSlot !== slot) {
+      incrementBattleStats("player2", { switchesBetweenMainSecondary: 1 });
+    }
     setPlayer2ActiveSlot(slot);
   }
 };
@@ -5401,6 +6185,12 @@ const handleConfirmSecondarySummon = () => {
       secondaryTurnTimeoutRef.current.player1 = null;
     }
     setPlayer1Secondary(summonedAvatar);
+    updateBattleStatsForPlayer("player1", (current) => ({
+      ...current,
+      secondarySummonedName: avatar.name,
+      secondarySummonTurn: turn,
+      secondaryTurnsSurvived: 0,
+    }));
     setPlayer1SecondaryPanelVisible(true);
     setPlayer1SecondaryTurnDisplay(summonedAvatar.turnsRemaining);
     setPlayer1ActiveSlot("main");
@@ -5415,6 +6205,12 @@ const handleConfirmSecondarySummon = () => {
       secondaryTurnTimeoutRef.current.player2 = null;
     }
     setPlayer2Secondary(summonedAvatar);
+    updateBattleStatsForPlayer("player2", (current) => ({
+      ...current,
+      secondarySummonedName: avatar.name,
+      secondarySummonTurn: turn,
+      secondaryTurnsSurvived: 0,
+    }));
     setPlayer2SecondaryPanelVisible(true);
     setPlayer2SecondaryTurnDisplay(summonedAvatar.turnsRemaining);
     setPlayer2ActiveSlot("main");
@@ -5566,6 +6362,7 @@ const handleStartMatch = () => {
   setIsBattleIntroStaging(true);
   setBattleIntroRevealPlayer1(false);
   setBattleIntroRevealPlayer2(false);
+  clearBattleEndSequence();
 
   if (battleStartLaunchTimeoutRef.current) {
     clearTimeout(battleStartLaunchTimeoutRef.current);
@@ -5579,6 +6376,8 @@ const handleStartMatch = () => {
     setStartingPlayer(null);
     setCurrentTurnPlayer(null);
     setWinner(null);
+    setLatestChronicleEntry(null);
+    setBattleStats(createBattleStatsState(player1Name, player2Name));
     setElapsedSeconds(0);
     setTimerRunning(true);
     clearBattleHistory();
@@ -5611,6 +6410,18 @@ const handleBackFromStartModal = () => {
   setShowQuickStartButton(true);
 };
 
+const handleBattleExitRequest = () => {
+  if (isBattleEndSequenceActive) return;
+
+  if (!gameStarted) {
+    resetGameState();
+    navigateWithTransition("home");
+    return;
+  }
+
+  setShowExitConfirm(true);
+};
+
 const navigateWithTransition = (nextScreen) => {
   setScreenVisible(false);
 
@@ -5624,6 +6435,14 @@ const navigateWithTransition = (nextScreen) => {
   if (!gameStarted || gameOver) return;
 
   const closeOwnTurnState = (ownerId) => {
+    const combatState =
+      ownerId === "player1" ? player1CombatState : player2CombatState;
+    if ((combatState.attackBlockedTurns || 0) > 0) {
+      incrementBattleStats(ownerId, { attackBlockedCount: 1 });
+    }
+    if ((combatState.emPlacementBlockedTurns || 0) > 0) {
+      incrementBattleStats(ownerId, { emBlockedCount: 1 });
+    }
     const setCombatState = ownerId === "player1" ? setPlayer1CombatState : setPlayer2CombatState;
 
     setCombatState((prev) => ({
@@ -5661,6 +6480,7 @@ const navigateWithTransition = (nextScreen) => {
     const setHistory = ownerId === "player1" ? setPlayer1History : setPlayer2History;
 
     setHp((prev) => Math.max(0, prev - poisonState.amount));
+    incrementBattleStats(ownerId, { damageReceived: poisonState.amount });
     triggerFlash(setFlash, "damage");
     setHistory((prev) => [
       `Veneno activo: -${poisonState.amount} PV`,
@@ -5670,6 +6490,7 @@ const navigateWithTransition = (nextScreen) => {
 
   const decrementSecondaryTurns = (ownerId) => {
     if (ownerId === "player1" && player1Secondary) {
+      incrementBattleStats("player1", { secondaryTurnsSurvived: 1 });
       const nextTurns = player1Secondary.turnsRemaining - 1;
 
       if (nextTurns <= 0) {
@@ -5713,6 +6534,7 @@ const navigateWithTransition = (nextScreen) => {
     }
 
     if (ownerId === "player2" && player2Secondary) {
+      incrementBattleStats("player2", { secondaryTurnsSurvived: 1 });
       const nextTurns = player2Secondary.turnsRemaining - 1;
 
       if (nextTurns <= 0) {
@@ -5862,6 +6684,7 @@ const handleApplyAdjustAttack = () => {
   stopAdjustAttackClearHold();
   attackAdjustClearTriggeredRef.current = false;
   pushBattleHistorySnapshot();
+  incrementBattleStats(adjustAttackPlayer, { manualPdAdjustments: 1 });
 
   const setModifiers =
     adjustAttackPlayer === "player1" ? setPlayer1AttackModifiers : setPlayer2AttackModifiers;
@@ -5969,6 +6792,7 @@ const handleApplyAdjustHp = () => {
 
   if (!amount || amount <= 0 || !adjustTargetPlayer) return;
   pushBattleHistorySnapshot();
+  incrementBattleStats(adjustTargetPlayer, { manualHpAdjustments: 1 });
 
   if (adjustTargetPlayer === "player1") {
     if (adjustTargetSlot === "secondary" && player1Secondary) {
@@ -6197,12 +7021,17 @@ useEffect(() => {
       
   return (
     <HomeScreen
-      onStartBattle={() => navigateWithTransition("battle")}
+      onStartBattle={() => {
+        setLoadedBattleSlotIndex(null);
+        navigateWithTransition("battle");
+      }}
       onGoLibrary={() => navigateWithTransition("library")}
       onGoAvatars={() => navigateWithTransition("avatars")}
+      onGoChronicles={() => navigateWithTransition("chronicles")}
       onLoadSavedBattle={handleLoadSavedBattle}
       onDeleteSavedBattle={handleDeleteSavedBattle}
       savedBattleSlots={savedBattleSlots}
+      chronicleSlots={chronicleSlots}
     />
   );
 }
@@ -6215,12 +7044,28 @@ useEffect(() => {
       return <AvatarsScreen onGoHome={() => navigateWithTransition("home")} />;
     }
 
+    if (screen === "chronicles") {
+      return (
+        <ChroniclesScreen
+          onGoHome={() => navigateWithTransition("home")}
+          chronicleSlots={chronicleSlots}
+          selectedSlot={selectedChronicleSlot}
+          onSelectSlot={setSelectedChronicleSlot}
+          onDeleteChronicle={handleDeleteChronicle}
+        />
+      );
+    }
+
     return (
       <div
         className={`app-wrapper ${isAnyBattleModalOpen ? "modal-active" : ""} ${
           isLaunchingBattleFromModal || isBattleIntroStaging ? "battle-launch-active" : ""
         } ${
           isLaunchingBattleFromModal ? "battle-launch-overlay-only" : ""
+        } ${
+          isBattleEndSequenceActive ? "battle-end-sequence-active" : ""
+        } ${
+          isBattleEndSequenceActive ? `battle-end-sequence-${battleEndSequenceStage}` : ""
         }`}
       >
         <div className="turn-bar">
@@ -6229,12 +7074,16 @@ useEffect(() => {
           </div>
 
           <div className="turn-center">
-            <div className="turn-display-group">
-               <div className="turn-display">{turnTitle}</div>
-               <div className="turn-separator">|</div>
+          <div className="turn-display-group">
+               <div className={`turn-display ${gameOver ? "turn-display-final" : ""}`}>
+                 {gameOver ? "FIN DE LA PARTIDA" : turnTitle}
+               </div>
+               {!gameOver && <div className="turn-separator">|</div>}
+               {!gameOver && (
                 <div className={`timer-display ${gameStarted ? "timer-live" : "timer-idle"}`}>
                     {formattedTime}
-              </div>
+                </div>
+               )}
            </div>
           </div>
 
@@ -6247,7 +7096,7 @@ useEffect(() => {
                   aria-label="Retroceder acción"
                   title="Retroceder acción"
                   onClick={handleUndoBattleAction}
-                  disabled={battleUndoStack.length === 0}
+                  disabled={battleUndoStack.length === 0 || gameOver}
                 >
                   <img src="/ui/undo-icon.png" alt="Deshacer" className="battle-action-nav-icon" />
                 </button>
@@ -6257,7 +7106,7 @@ useEffect(() => {
                   aria-label="Avanzar acción"
                   title="Avanzar acción"
                   onClick={handleRedoBattleAction}
-                  disabled={battleRedoStack.length === 0}
+                  disabled={battleRedoStack.length === 0 || gameOver}
                 >
                   <img src="/ui/redo-icon.png" alt="Rehacer" className="battle-action-nav-icon" />
                 </button>
@@ -6276,9 +7125,10 @@ useEffect(() => {
 
             <button
               className="back-home-btn icon-home-btn"
-              onClick={() => setShowExitConfirm(true)}
+              onClick={handleBattleExitRequest}
               title="Volver al inicio"
               aria-label="Volver al inicio"
+              disabled={isBattleEndSequenceActive}
             >
               <img src="/ui/home-icon.png" alt="Inicio" className="home-icon" />
             </button>
@@ -6691,27 +7541,33 @@ useEffect(() => {
   </div>
 )}
 
+{isBattleEndSequenceActive && battleEndSequenceStage === "title" && (
+  <div className="battle-launch-transition battle-end-transition active">
+    <div className="battle-end-transition-copy">FIN DE LA PARTIDA</div>
+  </div>
+)}
+
 
         {showExitConfirm && (
           <div className="exit-confirm-overlay">
             <div className="exit-confirm-modal">
-              <h3>{"\u00BFDESEA GUARDAR ESTA PARTIDA?"}</h3>
+              <h3>
+                {gameOver
+                  ? "¿DESEA QUE LOS STATS DE ESTA PARTIDA SE GUARDEN EN CRÓNICAS?"
+                  : "¿DESEA GUARDAR ESTA PARTIDA?"}
+              </h3>
 
               <div className="exit-confirm-actions">
                 <button
                   className="exit-accept-btn"
-                  onClick={handleSaveBattleAndExit}
+                  onClick={gameOver ? handleSaveChronicleAndExit : handleSaveBattleAndExit}
                 >
                   ACEPTAR
                 </button>
 
                 <button
                   className="exit-cancel-btn"
-                  onClick={() => {
-                    resetGameState();
-                    setShowExitConfirm(false);
-                    navigateWithTransition("home");
-                  }}
+                  onClick={handleExitWithoutSaving}
                 >
                   CANCELAR
                 </button>
@@ -6932,6 +7788,11 @@ useEffect(() => {
             rouletteRevealActive={rouletteRevealPlayer1}
             battleIntroStaging={isBattleIntroStaging}
             battleIntroVisible={battleIntroRevealPlayer1}
+            battleEndSequenceActive={isBattleEndSequenceActive}
+            battleEndSequenceStage={battleEndSequenceStage}
+            showVictoryContent={showVictoryContent}
+            winner={winner}
+            chronicleEntry={latestChronicleEntry}
           />
 
           {!gameStarted && !isLaunchingBattleFromModal && !isBattleIntroStaging && (
@@ -7029,6 +7890,11 @@ useEffect(() => {
             rouletteRevealActive={rouletteRevealPlayer2}
             battleIntroStaging={isBattleIntroStaging}
             battleIntroVisible={battleIntroRevealPlayer2}
+            battleEndSequenceActive={isBattleEndSequenceActive}
+            battleEndSequenceStage={battleEndSequenceStage}
+            showVictoryContent={showVictoryContent}
+            winner={winner}
+            chronicleEntry={latestChronicleEntry}
           />  
         </div>
       </div>
