@@ -1347,6 +1347,14 @@ const SECONDARY_MODAL_PARTICLES = [
   { left: "79%", size: 4, duration: 9.6, delay: 0.58, drift: 6 },
   { left: "89%", size: 3, duration: 8.1, delay: 0.14, drift: -7 },
 ];
+const ATTACK_READY_PARTICLES = [
+  { left: "10%", size: 3, duration: 3.9, delay: 0.06, drift: -7 },
+  { left: "24%", size: 4, duration: 4.4, delay: 0.42, drift: 6 },
+  { left: "40%", size: 3, duration: 3.6, delay: 0.18, drift: -5 },
+  { left: "56%", size: 5, duration: 4.8, delay: 0.55, drift: 8 },
+  { left: "72%", size: 3, duration: 4.1, delay: 0.24, drift: -6 },
+  { left: "86%", size: 4, duration: 4.5, delay: 0.68, drift: 7 },
+];
 
 const createPlayerBattleStats = (mainAvatarName = "") => ({
   mainAvatarName,
@@ -2240,6 +2248,24 @@ return (
                 title={attack.description || attack.name}
                 disabled={!attackIsReady}
               >
+                {attackHasPulse && (
+                  <div className={`attack-particle-field ${isLeftSide ? "attack-particle-field-red" : "attack-particle-field-blue"}`}>
+                    {ATTACK_READY_PARTICLES.map((particle, particleIndex) => (
+                      <span
+                        key={`${activeAvatar.name}-${attack.name}-particle-${particleIndex}`}
+                        className="attack-particle"
+                        style={{
+                          left: particle.left,
+                          width: `${particle.size}px`,
+                          height: `${particle.size}px`,
+                          animationDuration: `${particle.duration}s`,
+                          animationDelay: `${particle.delay}s`,
+                          "--attack-particle-drift": `${particle.drift}px`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
                 <span className="attack-name">{attack.name}</span>
                 <span className="attack-damage">
                   <span className="attack-damage-value">-{adjustedDamage} PD</span>
