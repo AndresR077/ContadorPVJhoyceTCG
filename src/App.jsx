@@ -1326,6 +1326,27 @@ const createCombatState = () => ({
 
 const CHRONICLES_STORAGE_KEY = "jhoyce-chronicles-v1";
 const MAX_CHRONICLE_SLOTS = 10;
+const VICTORY_PARTICLES = [
+  { left: "8%", size: 4, duration: 8.6, delay: 0, drift: -16 },
+  { left: "16%", size: 6, duration: 10.8, delay: 1.2, drift: 12 },
+  { left: "24%", size: 3, duration: 7.8, delay: 0.8, drift: -10 },
+  { left: "36%", size: 5, duration: 11.2, delay: 2.1, drift: 14 },
+  { left: "48%", size: 4, duration: 9.4, delay: 0.3, drift: -18 },
+  { left: "58%", size: 7, duration: 12.4, delay: 1.6, drift: 10 },
+  { left: "68%", size: 3, duration: 8.2, delay: 2.8, drift: -8 },
+  { left: "76%", size: 5, duration: 10.6, delay: 0.6, drift: 16 },
+  { left: "86%", size: 4, duration: 9.8, delay: 2.3, drift: -12 },
+  { left: "92%", size: 6, duration: 11.6, delay: 1.1, drift: 9 },
+];
+const SECONDARY_MODAL_PARTICLES = [
+  { left: "12%", size: 3, duration: 7.8, delay: 0.05, drift: -8 },
+  { left: "24%", size: 4, duration: 9.2, delay: 0.45, drift: 7 },
+  { left: "38%", size: 3, duration: 8.4, delay: 0.22, drift: -6 },
+  { left: "52%", size: 5, duration: 10.1, delay: 0.7, drift: 8 },
+  { left: "66%", size: 3, duration: 8.8, delay: 0.32, drift: -5 },
+  { left: "79%", size: 4, duration: 9.6, delay: 0.58, drift: 6 },
+  { left: "89%", size: 3, duration: 8.1, delay: 0.14, drift: -7 },
+];
 
 const createPlayerBattleStats = (mainAvatarName = "") => ({
   mainAvatarName,
@@ -1875,6 +1896,24 @@ return (
         bgClass === "left-side" ? "panel-bg-overlay-red" : "panel-bg-overlay-blue"
       }`}
     />
+    {isWinnerPanel && (
+      <div className={`victory-particles ${bgClass === "left-side" ? "victory-particles-red" : "victory-particles-blue"}`}>
+        {VICTORY_PARTICLES.map((particle, index) => (
+          <span
+            key={`${bgClass}-victory-particle-${index}`}
+            className="victory-particle"
+            style={{
+              left: particle.left,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              animationDuration: `${particle.duration}s`,
+              animationDelay: `${particle.delay}s`,
+              "--particle-drift": `${particle.drift}px`,
+            }}
+          />
+        ))}
+      </div>
+    )}
   </div>
 
   {isLoserPanel && chronicleEntry ? (
@@ -2440,7 +2479,24 @@ function HomeScreen({
       ))}
 
       <div className="home-topbar">
-        <img src="/logo jhoyce.png" alt="Logo del juego" className="home-logo" />
+        <div className="home-topbar-left" />
+        <div className="home-topbar-center">
+          <img src="/logo jhoyce.png" alt="Logo del juego" className="home-logo" />
+        </div>
+        <div className="home-topbar-right">
+          <button
+            type="button"
+            className={`home-topbar-chronicles-btn ${hasChronicles ? "has-saves" : ""}`}
+            onClick={onGoChronicles}
+          >
+            <span className="home-topbar-chronicles-label">Crónicas</span>
+            <span className="home-topbar-chronicles-meta">
+              {hasChronicles
+                ? `${chronicleSlots.filter(Boolean).length} registro(s)`
+                : "Sin registros"}
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="home-main">
@@ -2490,19 +2546,6 @@ function HomeScreen({
                 {hasSavedBattles
                   ? `${savedBattleSlots.filter(Boolean).length} slot(s) disponible(s)`
                   : "No hay partidas guardadas"}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className={`home-load-card home-chronicles-card ${hasChronicles ? "has-saves" : ""}`}
-              onClick={onGoChronicles}
-            >
-              <span className="home-load-card-label">Crónicas</span>
-              <span className="home-load-card-subtitle">
-                {hasChronicles
-                  ? `${chronicleSlots.filter(Boolean).length} registro(s) disponible(s)`
-                  : "Aún no hay registros guardados"}
               </span>
             </button>
           </div>
@@ -2759,34 +2802,34 @@ function ChroniclesScreen({
     <div className="chronicles-screen">
       <div className="library-topbar chronicles-topbar">
         <button
-          className="back-home-btn icon-home-btn"
-          onClick={onGoHome}
           type="button"
+          className={`chronicles-trash-toggle ${isDeleteMode ? "active" : ""}`}
+          aria-label={isDeleteMode ? "Salir del modo eliminar" : "Activar modo eliminar"}
+          title={isDeleteMode ? "Salir del modo eliminar" : "Activar modo eliminar"}
+          onClick={() => {
+            setIsDeleteMode((prev) => {
+              const nextValue = !prev;
+              if (!nextValue) {
+                setSelectedDeleteSlot(null);
+                setShowDeleteConfirmModal(false);
+              }
+              return nextValue;
+            });
+          }}
         >
-          <img src="/ui/home-icon.png" alt="Inicio" className="home-icon" />
+          <img
+            src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
+            alt=""
+          />
         </button>
         <h1>CRÓNICAS</h1>
         <div className="library-topbar-right chronicles-topbar-right">
           <button
+            className="back-home-btn icon-home-btn"
+            onClick={onGoHome}
             type="button"
-            className={`chronicles-trash-toggle ${isDeleteMode ? "active" : ""}`}
-            aria-label={isDeleteMode ? "Salir del modo eliminar" : "Activar modo eliminar"}
-            title={isDeleteMode ? "Salir del modo eliminar" : "Activar modo eliminar"}
-            onClick={() => {
-              setIsDeleteMode((prev) => {
-                const nextValue = !prev;
-                if (!nextValue) {
-                  setSelectedDeleteSlot(null);
-                  setShowDeleteConfirmModal(false);
-                }
-                return nextValue;
-              });
-            }}
           >
-            <img
-              src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
-              alt=""
-            />
+            <img src="/ui/home-icon.png" alt="Inicio" className="home-icon" />
           </button>
         </div>
       </div>
@@ -2868,7 +2911,6 @@ function ChroniclesScreen({
                   onDeleteChronicle(selectedDeleteSlot);
                   setShowDeleteConfirmModal(false);
                   setSelectedDeleteSlot(null);
-                  setIsDeleteMode(false);
                 }}
               >
                 ACEPTAR
@@ -3043,9 +3085,6 @@ function BattleEndStatsCard({ entry }) {
                   </div>
                   <div className="battle-end-compare-bars">
                     <div className="battle-end-compare-track-row">
-                      <span className={`battle-end-compare-track-label ${winnerTrackLabelClass}`}>
-                        Ganador
-                      </span>
                       <div className="battle-end-compare-track">
                         <div
                           className={`battle-end-compare-fill ${winnerFillClass}`}
@@ -3054,9 +3093,6 @@ function BattleEndStatsCard({ entry }) {
                       </div>
                     </div>
                     <div className="battle-end-compare-track-row">
-                      <span className={`battle-end-compare-track-label ${loserTrackLabelClass}`}>
-                        Perdedor
-                      </span>
                       <div className="battle-end-compare-track">
                         <div
                           className={`battle-end-compare-fill ${loserFillClass}`}
@@ -7063,6 +7099,8 @@ useEffect(() => {
         } ${
           isLaunchingBattleFromModal ? "battle-launch-overlay-only" : ""
         } ${
+          showVictoryContent ? "victory-screen-active" : ""
+        } ${
           isBattleEndSequenceActive ? "battle-end-sequence-active" : ""
         } ${
           isBattleEndSequenceActive ? `battle-end-sequence-${battleEndSequenceStage}` : ""
@@ -7440,6 +7478,24 @@ useEffect(() => {
           alt={avatar.name}
           className="secondary-carousel-image"
         />
+        {isCenter && !showSummonCardPreview && (
+          <div className="secondary-card-particles">
+            {SECONDARY_MODAL_PARTICLES.map((particle, particleIndex) => (
+              <span
+                key={`${avatar.id}-particle-${particleIndex}`}
+                className="secondary-card-particle"
+                style={{
+                  left: particle.left,
+                  width: `${particle.size}px`,
+                  height: `${particle.size}px`,
+                  animationDuration: `${particle.duration}s`,
+                  animationDelay: `${particle.delay}s`,
+                  "--secondary-particle-drift": `${particle.drift}px`,
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="secondary-carousel-gradient" />
 
@@ -7902,7 +7958,9 @@ useEffect(() => {
   };
 
   return (
-    <div className={`screen-fade ${screenVisible ? "screen-show" : "screen-hide"}`}>
+    <div
+      className={`screen-fade screen-${screen} ${screenVisible ? "screen-show" : "screen-hide"}`}
+    >
       {renderCurrentScreen()}
       {saveToastMessage && <div className="save-toast">{saveToastMessage}</div>}
     </div>

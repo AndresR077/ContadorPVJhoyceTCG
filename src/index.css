@@ -16,11 +16,13 @@
 }
 
 html {
-  background: #0d0d0d;
+  background: #000;
+  min-height: 100%;
 }
 
 body {
-  background: #0d0d0d;
+  background: #000;
+  min-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -34,14 +36,15 @@ body.battle-modal-open {
 #root {
   width: 100%;
   min-height: 100vh;
+  background: #000;
 }
 
 .app-wrapper {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .app-wrapper.modal-active .turn-bar,
@@ -49,6 +52,26 @@ body.battle-modal-open {
 .app-wrapper.modal-active .random-avatar-container {
   pointer-events: none;
   user-select: none;
+}
+
+.app-wrapper.victory-screen-active {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-wrapper.victory-screen-active .app {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.app-wrapper.victory-screen-active .player-panel {
+  min-height: 0;
+  height: 100%;
+}
+
+.app-wrapper.victory-screen-active .panel-bg {
+  height: 100%;
 }
 
 .heal-btn:disabled {
@@ -82,7 +105,7 @@ body.battle-modal-open {
     auto,
     500px 500px;
   background-position:
-    left bottom,
+    0 calc(100% + 2px),
     center,
     center;
   background-repeat:
@@ -273,8 +296,8 @@ body.battle-modal-open {
 .app {
   display: flex;
   width: 100%;
-  height: calc(100vh - 70px);
-  overflow: hidden;
+  min-height: calc(100vh - 70px);
+  overflow: visible;
   position: relative;
 }
 
@@ -285,8 +308,7 @@ body.battle-modal-open {
   padding: 20px;
   gap: 16px;
   position: relative;
-  min-height: 0;
-  height: calc(100vh - 70px);
+  min-height: calc(100vh - 70px);
   overflow: hidden;
   min-width: 0;
 }
@@ -467,10 +489,26 @@ body.battle-modal-open {
 
 .avatar-gameover-winner {
   filter: grayscale(0) brightness(1.06) contrast(1.04) saturate(1.02);
+  animation: winnerAvatarDrift 8.8s ease-in-out infinite;
 }
 
 .avatar-gameover-loser {
   filter: grayscale(1) brightness(0.3) contrast(1.1);
+}
+
+@keyframes winnerAvatarDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.01);
+  }
+  30% {
+    transform: translate3d(0, -10px, 0) scale(1.018);
+  }
+  65% {
+    transform: translate3d(0, 6px, 0) scale(1.012);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.01);
+  }
 }
 
 .attack-btn:disabled,
@@ -1062,7 +1100,7 @@ body.battle-modal-open {
 
 .battle-end-compare-track-row {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -1310,6 +1348,39 @@ body.battle-modal-open {
   pointer-events: none;
 }
 
+.victory-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.victory-particle {
+  position: absolute;
+  bottom: -24px;
+  border-radius: 999px;
+  opacity: 0;
+  filter: blur(0.35px);
+  animation-name: victoryParticleFloat;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.victory-particles-red .victory-particle {
+  background: radial-gradient(circle, rgba(255, 238, 190, 0.98) 0%, rgba(255, 144, 96, 0.88) 42%, rgba(255, 90, 90, 0) 100%);
+  box-shadow:
+    0 0 14px rgba(255, 176, 122, 0.42),
+    0 0 24px rgba(255, 92, 92, 0.22);
+}
+
+.victory-particles-blue .victory-particle {
+  background: radial-gradient(circle, rgba(235, 252, 255, 0.98) 0%, rgba(144, 238, 255, 0.88) 42%, rgba(124, 231, 255, 0) 100%);
+  box-shadow:
+    0 0 14px rgba(184, 244, 255, 0.38),
+    0 0 24px rgba(113, 231, 255, 0.22);
+}
+
 .panel-bg-overlay-red {
   background: linear-gradient(
     180deg,
@@ -1372,6 +1443,23 @@ body.battle-modal-open {
     rgba(0, 20, 55, 0.62) 42%,
     rgba(0, 8, 22, 0.92) 100%
   );
+}
+
+@keyframes victoryParticleFloat {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.78);
+  }
+  12% {
+    opacity: 0.64;
+  }
+  58% {
+    opacity: 0.36;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--particle-drift, 0px), -68vh, 0) scale(1.24);
+  }
 }
 
 .name-select {
@@ -2508,7 +2596,7 @@ body.battle-modal-open {
   align-items: stretch;
   justify-content: flex-start;
   gap: 0;
-  padding: 0 0 24px;
+  padding: 0;
   background: #000;
   overflow: hidden;
   position: relative;
@@ -2545,9 +2633,9 @@ body.battle-modal-open {
 
 .home-topbar {
   min-height: 70px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
   padding: 12px 18px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.08);
   background-image:
@@ -2557,7 +2645,7 @@ body.battle-modal-open {
     auto 8px,
     auto;
   background-position:
-    left bottom,
+    0 calc(100% + 2px),
     center;
   background-repeat:
     repeat-x,
@@ -2569,24 +2657,95 @@ body.battle-modal-open {
   z-index: 15;
 }
 
+.home-topbar-left,
+.home-topbar-center,
+.home-topbar-right {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.home-topbar-left {
+  justify-content: flex-start;
+}
+
+.home-topbar-right {
+  justify-content: flex-end;
+}
+
+.home-topbar-center {
+  justify-content: center;
+}
+
 .home-main {
   width: min(1180px, calc(100% - 40px));
-  margin: 22px auto 0;
+  margin: 0 auto;
   display: flex;
   flex: 1;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 0;
-  padding-top: 24px;
+  padding-top: 0;
   position: relative;
   z-index: 15;
 }
 
 .home-logo {
-  width: min(230px, 54vw);
+  width: min(132px, 28vw);
   height: auto;
   object-fit: contain;
+}
+
+.home-topbar-chronicles-btn {
+  min-height: 44px;
+  min-width: min(270px, 36vw);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.28)),
+    linear-gradient(180deg, rgba(16, 16, 16, 0.82), rgba(0, 0, 0, 0.9));
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-topbar-chronicles-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.24),
+    0 0 18px rgba(255, 255, 255, 0.08);
+}
+
+.home-topbar-chronicles-btn.has-saves {
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.24),
+    0 0 18px rgba(67, 255, 138, 0.12);
+}
+
+.home-topbar-chronicles-label {
+  font-size: 1.15rem;
+  font-family: 'EB Garamond', serif;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.home-topbar-chronicles-meta {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+  white-space: nowrap;
 }
 
 .home-buttons {
@@ -3314,8 +3473,23 @@ body.battle-modal-open {
 
 .screen-fade {
   min-height: 100dvh;
+  background: #000;
   opacity: 1;
   transition: opacity 0.25s ease;
+}
+
+.screen-fade.screen-home {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.screen-fade.screen-home .home-screen {
+  min-height: 100%;
+  height: 100%;
 }
 
 .screen-show {
@@ -3351,7 +3525,7 @@ body.battle-modal-open {
     auto,
     500px 500px;
   background-position:
-    left bottom,
+    0 calc(100% + 2px),
     center,
     center;
   background-repeat:
@@ -3379,7 +3553,7 @@ body.battle-modal-open {
     auto,
     500px 500px;
   background-position:
-    left bottom,
+    0 calc(100% + 2px),
     center,
     center;
   background-repeat:
@@ -5501,6 +5675,27 @@ body.battle-modal-open {
   display: block;
 }
 
+.secondary-card-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.secondary-card-particle {
+  position: absolute;
+  bottom: -18px;
+  border-radius: 999px;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.76) 42%, rgba(255, 255, 255, 0) 100%);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.34),
+    0 0 18px rgba(255, 255, 255, 0.14);
+  filter: blur(0.25px);
+  animation: secondaryCardParticleFloat ease-in-out infinite;
+}
+
 .secondary-carousel-gradient {
   position: absolute;
   inset: auto 0 0 0;
@@ -5539,6 +5734,23 @@ body.battle-modal-open {
 .secondary-carousel-summon {
   font-size: 0.84rem;
   opacity: 0.72;
+}
+
+@keyframes secondaryCardParticleFloat {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.78);
+  }
+  8% {
+    opacity: 0.54;
+  }
+  62% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--secondary-particle-drift, 0px), -54vh, 0) scale(1.14);
+  }
 }
 
 .secondary-card-toggle-btn {
