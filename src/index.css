@@ -1121,11 +1121,37 @@ body.battle-modal-open {
   overflow: visible;
   position: relative;
   transform: translateY(-12px);
+  isolation: isolate;
 }
 
 .battle-end-stats-card > :not(.ornate-frame) {
   position: relative;
   z-index: 2;
+}
+
+.battle-end-stats-card::before,
+.battle-end-stats-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.battle-end-stats-card::before {
+  z-index: 0;
+  background-image: var(--battle-end-bg-image, none);
+  background-size: var(--battle-end-bg-size, cover);
+  background-position: var(--battle-end-bg-position, center center);
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: scale(1.04);
+}
+
+.battle-end-stats-card::after {
+  z-index: 1;
+  background:
+    radial-gradient(circle at top, rgba(var(--battle-end-accent-rgb), 0.12), transparent 52%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.18));
 }
 
 .battle-end-theme-red {
@@ -1233,6 +1259,10 @@ body.battle-modal-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.battle-end-summary-chip-wide {
+  grid-column: 1 / -1;
 }
 
 .battle-end-summary-chip {
@@ -3413,31 +3443,108 @@ body.battle-modal-open {
 }
 
 .chronicles-screen {
-  min-height: 100vh;
+  --chronicles-accent-rgb: 216, 216, 216;
+  min-height: 100dvh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background:
-    linear-gradient(180deg, rgba(8, 8, 8, 0.66), rgba(0, 0, 0, 0.9)),
+    radial-gradient(circle at top, rgba(var(--chronicles-accent-rgb), 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(8, 8, 8, 0.66), rgba(0, 0, 0, 0.92)),
     url("/ui/turn-bar-bg.png");
-  background-size: auto, 500px 500px;
-  background-repeat: no-repeat, repeat;
+  background-size: auto, auto, 500px 500px;
+  background-repeat: no-repeat, no-repeat, repeat;
   color: white;
+}
+
+.chronicles-screen-theme-red {
+  --chronicles-accent-rgb: 255, 112, 112;
+}
+
+.chronicles-screen-theme-blue {
+  --chronicles-accent-rgb: 125, 231, 255;
+}
+
+.chronicles-screen-theme-neutral {
+  --chronicles-accent-rgb: 216, 216, 216;
 }
 
 .chronicles-layout {
   width: min(1260px, calc(100% - 40px));
   margin: 26px auto 24px;
+  flex: 1;
+  min-height: 0;
+  height: calc(100dvh - 122px);
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .chronicles-slot-column {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.chronicles-slot-column::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chronicles-slot-column::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.chronicles-topbar {
+  display: grid;
+  grid-template-columns: 58px 1fr 58px;
+  align-items: center;
+}
+
+.chronicles-topbar-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: clamp(2.9rem, 3.4vw, 4rem);
+  font-family: "EB Garamond", serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgba(253, 253, 253, 0.98);
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.chronicles-topbar-word {
+  font-size: clamp(3.2rem, 3.9vw, 4.5rem);
+}
+
+.chronicles-topbar-separator {
+  font-size: clamp(2rem, 2.6vw, 2.8rem);
+  opacity: 0.74;
+  transform: translateY(-1px);
+}
+
+.chronicles-topbar-logo {
+  width: min(180px, 18vw);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.34));
 }
 
 .chronicles-topbar-right {
+  position: relative;
+  z-index: 2;
   justify-content: flex-end;
 }
 
@@ -3452,6 +3559,8 @@ body.battle-modal-open {
   justify-content: center;
   box-shadow: 0 0 0 rgba(255, 72, 72, 0);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  position: relative;
+  z-index: 2;
 }
 
 .chronicles-trash-toggle img {
@@ -3467,12 +3576,14 @@ body.battle-modal-open {
 }
 
 .chronicles-slot {
+  --chronicles-slot-accent: rgba(255, 255, 255, 0.16);
+  --chronicles-slot-glow: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   min-height: 76px;
   padding: 14px 16px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.3)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
     linear-gradient(180deg, rgba(18, 18, 18, 0.82), rgba(0, 0, 0, 0.92));
   color: white;
   display: flex;
@@ -3481,21 +3592,56 @@ body.battle-modal-open {
   justify-content: center;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .chronicles-slot:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--chronicles-slot-accent);
+  box-shadow: 0 0 18px var(--chronicles-slot-glow);
 }
 
 .chronicles-slot.active {
-  border-color: rgba(255, 255, 255, 0.44);
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.12);
+  border-color: var(--chronicles-slot-accent);
+  box-shadow:
+    inset 0 0 0 1px var(--chronicles-slot-accent),
+    0 0 24px var(--chronicles-slot-glow);
 }
 
 .chronicles-slot.filled {
   position: relative;
+  --chronicles-slot-accent: rgba(255, 118, 118, 0.26);
+  --chronicles-slot-glow: rgba(255, 86, 86, 0.14);
+  border-color: rgba(255, 126, 126, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 118, 118, 0.14), rgba(255, 255, 255, 0.02)),
+    linear-gradient(180deg, rgba(30, 8, 8, 0.78), rgba(6, 0, 0, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 126, 126, 0.08),
+    0 0 18px rgba(255, 86, 86, 0.08);
+}
+
+.chronicles-slot.empty {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.005)),
+    linear-gradient(180deg, rgba(10, 10, 10, 0.9), rgba(0, 0, 0, 0.98));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.chronicles-slot-red {
+  --chronicles-slot-accent: rgba(255, 143, 143, 0.34);
+  --chronicles-slot-glow: rgba(255, 82, 82, 0.16);
+}
+
+.chronicles-slot-blue {
+  --chronicles-slot-accent: rgba(255, 143, 143, 0.34);
+  --chronicles-slot-glow: rgba(255, 82, 82, 0.16);
+}
+
+.chronicles-slot-neutral {
+  --chronicles-slot-accent: rgba(255, 143, 143, 0.34);
+  --chronicles-slot-glow: rgba(255, 82, 82, 0.16);
 }
 
 .chronicles-slot-kicker {
@@ -3506,10 +3652,11 @@ body.battle-modal-open {
 }
 
 .chronicles-slot-title {
-  font-size: 1.4rem;
+  font-size: 1.18rem;
   font-family: EB Garamond, serif;
   font-weight: 700;
-  line-height: 1;
+  line-height: 0.98;
+  text-wrap: balance;
 }
 
 .chronicles-slot-meta,
@@ -3520,20 +3667,26 @@ body.battle-modal-open {
 
 .chronicles-detail {
   min-height: 100%;
-  border-radius: 24px;
-  padding: 26px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.2)),
-    linear-gradient(180deg, rgba(18, 18, 18, 0.9), rgba(0, 0, 0, 0.96));
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .chronicles-detail-empty {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   min-height: 420px;
+  border-radius: 24px;
+  padding: 32px;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.2)),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.9), rgba(0, 0, 0, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.32);
 }
 
 .chronicles-detail h2 {
@@ -3543,40 +3696,54 @@ body.battle-modal-open {
   margin-bottom: 14px;
 }
 
-.chronicles-summary {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 20px;
+.chronicles-detail-filled .battle-end-stats-card {
+  width: 100%;
+  max-height: 100%;
+  height: 100%;
+  margin-top: 0;
+  transform: none;
 }
 
-.chronicles-summary span,
-.chronicles-stat-list span {
-  font-size: 0.98rem;
-  line-height: 1.45;
+.battle-end-stats-card-chronicles {
+  --battle-end-panel-top: rgba(255, 255, 255, 0.02);
+  --battle-end-panel-radial: rgba(var(--battle-end-accent-rgb), 0.12);
+  --battle-end-panel-start: rgba(20, 12, 12, 0.48);
+  --battle-end-panel-end: rgba(3, 3, 3, 0.72);
+  --battle-end-panel-border: rgba(var(--battle-end-accent-rgb), 0.2);
+  --battle-end-panel-shadow: rgba(var(--battle-end-accent-rgb), 0.16);
+  padding: 24px 22px;
 }
 
-.chronicles-players-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+.battle-end-stats-card-chronicles::before {
+  opacity: 0.2;
+  background-size: auto 76%;
+  background-position: center 18%;
 }
 
-.chronicles-player-block {
-  border-radius: 18px;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.battle-end-stats-card-chronicles::after {
+  background:
+    radial-gradient(circle at top, rgba(var(--battle-end-accent-rgb), 0.16), transparent 50%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.6));
 }
 
-.chronicles-player-block h3 {
-  font-size: 2rem;
-  font-family: EB Garamond, serif;
+.battle-end-stats-card-chronicles .ornate-frame {
+  --ornate-corner-size: clamp(100px, 8.6vw, 140px);
+  --ornate-edge-size: clamp(2px, 0.72vw, 18px);
+  opacity: 1;
+}
+
+.battle-end-stats-card-chronicles .ornate-frame-edge-left,
+.battle-end-stats-card-chronicles .ornate-frame-edge-right {
+  display: none;
+}
+
+.battle-end-stats-card-chronicles .battle-end-stats-card-header {
+  padding-top: 14px;
   margin-bottom: 10px;
 }
 
-.chronicles-stat-list {
-  display: grid;
-  gap: 6px;
+.battle-end-stats-card-chronicles .battle-end-stats-scroll {
+  padding: 18px 18px 26px 12px;
 }
 
 .home-load-card-label {

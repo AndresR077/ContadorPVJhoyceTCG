@@ -1440,6 +1440,9 @@ const formatChronicleSavedAt = (savedAt) => {
   }
 };
 
+const getAvatarVisualConfig = (avatarName = "") =>
+  AVATAR_OPTIONS.find((avatar) => avatar.name === avatarName) || null;
+
 function PlayerPanel({
   panelPlayerId,
   playerLabel,
@@ -2870,51 +2873,9 @@ function ChronicleDetail({ entry }) {
     );
   }
 
-  const renderPlayerBlock = (title, playerData) => {
-    const stats = playerData.stats;
-
-    return (
-      <div className="chronicles-player-block">
-        <h3>{title}</h3>
-        <div className="chronicles-stat-list">
-          <span><strong>Avatar principal:</strong> {stats.mainAvatarName}</span>
-          <span>
-            <strong>Secundario:</strong> {stats.secondarySummonedName || "No invocado"} ·{" "}
-            {stats.secondaryTurnsSurvived} turnos
-          </span>
-          <span><strong>Turno de invocación:</strong> {stats.secondarySummonTurn ?? "-"}</span>
-          <span><strong>Daño infligido:</strong> {stats.damageDealt}</span>
-          <span><strong>Daño recibido:</strong> {stats.damageReceived}</span>
-          <span><strong>Curación total:</strong> {stats.healingTotal}</span>
-          <span><strong>EM colocada:</strong> {stats.emPlacedTotal}</span>
-          <span><strong>Ataques realizados:</strong> {stats.attacksPerformed}</span>
-          <span><strong>Ataque más fuerte:</strong> {stats.strongestHit}</span>
-          <span><strong>Ajustes manuales PV:</strong> {stats.manualHpAdjustments}</span>
-          <span><strong>Ajustes manuales PD:</strong> {stats.manualPdAdjustments}</span>
-          <span><strong>Cambios principal/secundario:</strong> {stats.switchesBetweenMainSecondary}</span>
-          <span><strong>Efectos activados:</strong> {stats.effectsActivated}</span>
-          <span><strong>Bloqueos de ataque:</strong> {stats.attackBlockedCount}</span>
-          <span><strong>Bloqueos de EM:</strong> {stats.emBlockedCount}</span>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="chronicles-detail">
-      <div className="chronicles-summary">
-        <h2>{entry.winner === "Empate" ? "Empate" : `Victoria de ${entry.winner}`}</h2>
-        <span><strong>Duración:</strong> {entry.duration}</span>
-        <span><strong>Turnos jugados:</strong> {entry.turnsPlayed}</span>
-        <span><strong>Avatar ganador:</strong> {entry.winnerMainAvatar}</span>
-        <span><strong>Avatar derrotado:</strong> {entry.loserMainAvatar}</span>
-        <span><strong>Registro:</strong> {formatChronicleSavedAt(entry.savedAt)}</span>
-      </div>
-
-      <div className="chronicles-players-grid">
-        {renderPlayerBlock(entry.player1.label, entry.player1)}
-        {renderPlayerBlock(entry.player2.label, entry.player2)}
-      </div>
+    <div className="chronicles-detail chronicles-detail-filled">
+      <BattleEndStatsCard entry={entry} variant="chronicles" />
     </div>
   );
 }
@@ -2930,9 +2891,15 @@ function ChroniclesScreen({
   const [selectedDeleteSlot, setSelectedDeleteSlot] = useState(null);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const selectedEntry = chronicleSlots[selectedSlot] || null;
+  const chroniclesThemeClass =
+    selectedEntry?.winner === selectedEntry?.player1?.label
+      ? "chronicles-screen-theme-red"
+      : selectedEntry?.winner === selectedEntry?.player2?.label
+      ? "chronicles-screen-theme-blue"
+      : "chronicles-screen-theme-neutral";
 
   return (
-    <div className="chronicles-screen">
+    <div className={`chronicles-screen ${chroniclesThemeClass}`}>
       <div className="library-topbar chronicles-topbar">
         <button
           type="button"
@@ -2949,13 +2916,21 @@ function ChroniclesScreen({
               return nextValue;
             });
           }}
-        >
+          >
+            <img
+              src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
+              alt=""
+            />
+          </button>
+        <h1 className="chronicles-topbar-title">
+          <span className="chronicles-topbar-word">Crónicas</span>
+          <span className="chronicles-topbar-separator">|</span>
           <img
-            src={isDeleteMode ? "/ui/trash-open-icon.png" : "/ui/trash-closed-icon.png"}
-            alt=""
+            src="/logo jhoyce.png"
+            alt="Jhoyce Multiversal Legends"
+            className="chronicles-topbar-logo"
           />
-        </button>
-        <h1>CRÓNICAS</h1>
+        </h1>
         <div className="library-topbar-right chronicles-topbar-right">
           <button
             className="back-home-btn icon-home-btn"
@@ -2970,9 +2945,18 @@ function ChroniclesScreen({
       <div className="chronicles-layout">
         <div className="chronicles-slot-column">
           {chronicleSlots.map((entry, index) => (
+            (() => {
+              const slotThemeClass =
+                entry?.winner === entry?.player1?.label
+                  ? "chronicles-slot-red"
+                  : entry?.winner === entry?.player2?.label
+                  ? "chronicles-slot-blue"
+                  : "chronicles-slot-neutral";
+
+              return (
             <div
               key={`chronicle-slot-${index}`}
-              className={`chronicles-slot ${selectedSlot === index ? "active" : ""} ${
+              className={`chronicles-slot ${slotThemeClass} ${selectedSlot === index ? "active" : ""} ${
                 entry ? "filled" : "empty"
               }`}
               role="button"
@@ -3000,7 +2984,9 @@ function ChroniclesScreen({
               {entry ? (
                 <>
                   <span className="chronicles-slot-title">
-                    {entry.winner === "Empate" ? "Empate" : entry.winner}
+                    {entry.winner === "Empate"
+                      ? "Empate"
+                      : `${entry.winnerMainAvatar} vs. ${entry.loserMainAvatar}`}
                   </span>
                   <span className="chronicles-slot-meta">{entry.duration} · {entry.turnsPlayed}T</span>
                   {isDeleteMode && selectedDeleteSlot === index && (
@@ -3020,6 +3006,8 @@ function ChroniclesScreen({
                 <span className="chronicles-slot-empty">Vacío</span>
               )}
             </div>
+              );
+            })()
           ))}
         </div>
 
@@ -3063,9 +3051,10 @@ function ChroniclesScreen({
   );
 }
 
-function BattleEndStatsCard({ entry }) {
+function BattleEndStatsCard({ entry, variant = "battle" }) {
   if (!entry) return null;
 
+  const isChroniclesVariant = variant === "chronicles";
   const winnerPlayerData =
     entry.winner === entry.player1.label ? entry.player1 : entry.player2;
   const loserPlayerData =
@@ -3101,6 +3090,14 @@ function BattleEndStatsCard({ entry }) {
     : "battle-end-compare-fill-red";
   const winnerStats = winnerPlayerData.stats;
   const loserStats = loserPlayerData.stats;
+  const winnerAvatarConfig = getAvatarVisualConfig(entry.winnerMainAvatar);
+  const cardStyle = winnerAvatarConfig
+    ? {
+        "--battle-end-bg-image": `url("${winnerAvatarConfig.image}")`,
+        "--battle-end-bg-position": winnerAvatarConfig.bgPosition || "center center",
+        "--battle-end-bg-size": winnerAvatarConfig.bgFit || "cover",
+      }
+    : undefined;
 
   const compareMetrics = [
     { label: "Daño", winnerValue: winnerStats.damageDealt, loserValue: loserStats.damageDealt },
@@ -3158,10 +3155,21 @@ function BattleEndStatsCard({ entry }) {
   };
 
   return (
-      <div className={`battle-end-stats-card ${winnerToneClass}`}>
+      <div
+        className={`battle-end-stats-card ${winnerToneClass} ${
+          isChroniclesVariant ? "battle-end-stats-card-chronicles" : ""
+        }`}
+        style={cardStyle}
+      >
       <OrnateFrameDecoration />
       <div className="battle-end-stats-card-header">
-        <h3>{entry.winner === "Empate" ? "Empate" : `${entry.winner} GANA!`}</h3>
+        <h3>
+          {entry.winner === "Empate"
+            ? "Empate"
+            : isChroniclesVariant
+            ? `${entry.winnerMainAvatar} vs. ${entry.loserMainAvatar}`
+            : `${entry.winner} GANA!`}
+        </h3>
       </div>
 
       <div className="battle-end-stats-scroll">
@@ -3182,6 +3190,12 @@ function BattleEndStatsCard({ entry }) {
             <span className="battle-end-summary-label">Avatar derrotado</span>
             <strong>{entry.loserMainAvatar}</strong>
           </div>
+          {isChroniclesVariant && (
+            <div className="battle-end-summary-chip battle-end-summary-chip-wide">
+              <span className="battle-end-summary-label">Registro</span>
+              <strong>{formatChronicleSavedAt(entry.savedAt)}</strong>
+            </div>
+          )}
         </div>
 
         <div className="battle-end-compare-section">
@@ -4273,7 +4287,9 @@ export default function App() {
   const victoryMusicRef = useRef(null);
   const emPopSoundRef = useRef(null);
   const emPopRepeatSoundRef = useRef(null);
+  const activeUiSoundsRef = useRef(new Set());
   const musicFadeIntervalRef = useRef(null);
+  const victoryMusicFadeIntervalRef = useRef(null);
   const rouletteIntervalRef = useRef(null);
   const saveToastTimeoutRef = useRef(null);
   const [turn, setTurn] = useState(1);
@@ -4438,9 +4454,33 @@ export default function App() {
   };
 
   const playUiSound = (audioRef) => {
-    if (!audioRef?.current) return;
-    audioRef.current.currentTime = 0;
-    audioRef.current.play().catch(() => {});
+    const sourceAudio = audioRef?.current;
+    if (!sourceAudio) return;
+
+    const shouldLayerSound = !sourceAudio.paused && !sourceAudio.ended;
+    const playbackAudio = shouldLayerSound ? sourceAudio.cloneNode() : sourceAudio;
+
+    playbackAudio.volume = sourceAudio.volume;
+    playbackAudio.playbackRate = sourceAudio.playbackRate;
+
+    if (shouldLayerSound) {
+      activeUiSoundsRef.current.add(playbackAudio);
+
+      const releaseAudio = () => {
+        activeUiSoundsRef.current.delete(playbackAudio);
+        playbackAudio.removeEventListener("ended", releaseAudio);
+      };
+
+      playbackAudio.addEventListener("ended", releaseAudio, { once: true });
+    } else {
+      playbackAudio.currentTime = 0;
+    }
+
+    playbackAudio.play().catch(() => {
+      if (shouldLayerSound) {
+        activeUiSoundsRef.current.delete(playbackAudio);
+      }
+    });
   };
 
   const formatBattleElapsedTime = (totalSeconds) => {
@@ -4984,6 +5024,16 @@ useEffect(() => {
       clearTimeout(saveToastTimeoutRef.current);
       saveToastTimeoutRef.current = null;
     }
+
+    activeUiSoundsRef.current.forEach((audio) => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {
+        // Ignore cleanup failures.
+      }
+    });
+    activeUiSoundsRef.current.clear();
   };
 }, []);
 
@@ -5035,12 +5085,16 @@ useEffect(() => {
     clearInterval(musicFadeIntervalRef.current);
     musicFadeIntervalRef.current = null;
   }
+  if (victoryMusicFadeIntervalRef.current) {
+    clearInterval(victoryMusicFadeIntervalRef.current);
+    victoryMusicFadeIntervalRef.current = null;
+  }
 
   const menuMusic = menuMusicRef.current;
   const battleMusic = battleMusicRef.current;
   const victoryMusic = victoryMusicRef.current;
   const baseBattleVolume = 0.35;
-  const baseVictoryVolume = 0.42;
+  const baseVictoryVolume = 0.3;
 
   if (screen !== "battle") {
     if (battleMusic) {
@@ -5078,40 +5132,58 @@ useEffect(() => {
     return;
   }
 
-  if (showVictoryContent) {
-    if (victoryMusic && victoryMusic.paused) {
-      const startVictoryMusic = () => {
-        if (!victoryMusic) return;
-        victoryMusic.currentTime = 0;
-        victoryMusic.volume = baseVictoryVolume;
-        victoryMusic.play().catch(() => {});
-      };
+  if (isBattleEndSequenceActive) {
+    if (battleMusic && !battleMusic.paused && !musicFadeIntervalRef.current) {
+      const initialVolume = battleMusic.volume || baseBattleVolume;
+      const fadeStep = initialVolume / 14;
 
-      if (battleMusic && !battleMusic.paused) {
-        const initialVolume = battleMusic.volume || baseBattleVolume;
-        const fadeStep = initialVolume / 6;
-        musicFadeIntervalRef.current = setInterval(() => {
-          if (!battleMusic) return;
-          const nextVolume = Math.max(0, battleMusic.volume - fadeStep);
-          battleMusic.volume = nextVolume;
+      musicFadeIntervalRef.current = setInterval(() => {
+        if (!battleMusic) return;
 
-          if (nextVolume <= 0.001) {
-            clearInterval(musicFadeIntervalRef.current);
-            musicFadeIntervalRef.current = null;
-            battleMusic.pause();
-            battleMusic.currentTime = 0;
-            battleMusic.volume = baseBattleVolume;
-            startVictoryMusic();
-          }
-        }, 45);
-      } else {
-        if (battleMusic) {
+        const nextVolume = Math.max(0, battleMusic.volume - fadeStep);
+        battleMusic.volume = nextVolume;
+
+        if (nextVolume <= 0.001) {
+          clearInterval(musicFadeIntervalRef.current);
+          musicFadeIntervalRef.current = null;
           battleMusic.pause();
           battleMusic.currentTime = 0;
           battleMusic.volume = baseBattleVolume;
         }
-        startVictoryMusic();
-      }
+      }, 55);
+    }
+
+    if (victoryMusic) {
+      victoryMusic.pause();
+      victoryMusic.currentTime = 0;
+      victoryMusic.volume = baseVictoryVolume;
+    }
+
+    return;
+  }
+
+  if (showVictoryContent) {
+    if (battleMusic) {
+      battleMusic.pause();
+      battleMusic.currentTime = 0;
+      battleMusic.volume = baseBattleVolume;
+    }
+
+    if (victoryMusic && victoryMusic.paused) {
+      victoryMusic.currentTime = 0;
+      victoryMusic.volume = 0.08;
+      victoryMusic.play().then(() => {
+        victoryMusicFadeIntervalRef.current = setInterval(() => {
+          const nextVolume = Math.min(baseVictoryVolume, victoryMusic.volume + 0.035);
+          victoryMusic.volume = nextVolume;
+
+          if (nextVolume >= baseVictoryVolume - 0.001) {
+            clearInterval(victoryMusicFadeIntervalRef.current);
+            victoryMusicFadeIntervalRef.current = null;
+            victoryMusic.volume = baseVictoryVolume;
+          }
+        }, 70);
+      }).catch(() => {});
     }
     return;
   }
@@ -5132,8 +5204,18 @@ useEffect(() => {
       clearInterval(musicFadeIntervalRef.current);
       musicFadeIntervalRef.current = null;
     }
+    if (victoryMusicFadeIntervalRef.current) {
+      clearInterval(victoryMusicFadeIntervalRef.current);
+      victoryMusicFadeIntervalRef.current = null;
+    }
   };
-}, [audioUnlocked, screen, isBattleMusicMuted, showVictoryContent]);
+}, [
+  audioUnlocked,
+  screen,
+  isBattleMusicMuted,
+  isBattleEndSequenceActive,
+  showVictoryContent,
+]);
 
 useEffect(() => {
   const playButtonClick = (event) => {
@@ -5143,10 +5225,7 @@ useEffect(() => {
 
     if (!button || button.disabled) return;
     if (button.dataset.skipDefaultClickSfx === "true") return;
-    if (!buttonClickSoundRef.current) return;
-
-    buttonClickSoundRef.current.currentTime = 0;
-    buttonClickSoundRef.current.play().catch(() => {});
+    playUiSound(buttonClickSoundRef);
   };
 
   document.addEventListener("click", playButtonClick, true);
