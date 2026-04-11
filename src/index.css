@@ -431,6 +431,159 @@ body.battle-modal-open {
   animation: avatarDarkFlash 0.3s ease;
 }
 
+.impact-spark-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+
+.impact-spark-layer::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 110px;
+  height: 110px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+  animation: impactSparkFlash 0.48s ease-out forwards;
+}
+
+.impact-spark-layer::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 88px;
+  height: 88px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.42);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.impact-spark-layer-red::after {
+  background: radial-gradient(circle, rgba(255, 126, 96, 0.28) 0%, rgba(255, 92, 92, 0.12) 45%, rgba(255, 92, 92, 0) 100%);
+}
+
+.impact-spark-layer-blue::after {
+  background: radial-gradient(circle, rgba(152, 238, 255, 0.28) 0%, rgba(113, 231, 255, 0.12) 45%, rgba(113, 231, 255, 0) 100%);
+}
+
+.impact-spark-layer-low::after {
+  width: 74px;
+  height: 74px;
+}
+
+.impact-spark-layer-epic::after {
+  width: 182px;
+  height: 182px;
+  animation-duration: 0.7s;
+}
+
+.impact-spark-layer-epic::before {
+  opacity: 0;
+  animation: impactSparkFlashEcho 0.82s ease-out forwards;
+}
+
+.impact-spark-layer-red.impact-spark-layer-epic::before {
+  background: radial-gradient(circle, rgba(255, 228, 176, 0.3) 0%, rgba(255, 118, 84, 0.14) 48%, rgba(255, 92, 92, 0) 100%);
+}
+
+.impact-spark-layer-blue.impact-spark-layer-epic::before {
+  background: radial-gradient(circle, rgba(226, 250, 255, 0.3) 0%, rgba(132, 234, 255, 0.14) 48%, rgba(113, 231, 255, 0) 100%);
+}
+
+.impact-spark {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  border-radius: 999px;
+  opacity: 0;
+  transform-origin: center top;
+  animation: impactSparkBurst var(--impact-spark-duration, 0.66s) cubic-bezier(0.12, 0.84, 0.22, 1) forwards;
+  animation-delay: var(--impact-spark-delay, 0s);
+}
+
+.impact-spark-layer-red .impact-spark {
+  background: linear-gradient(180deg, rgba(255, 248, 210, 0.96) 0%, rgba(255, 166, 116, 0.92) 36%, rgba(255, 92, 92, 0.4) 70%, rgba(255, 92, 92, 0) 100%);
+  box-shadow:
+    0 0 12px rgba(255, 190, 138, 0.62),
+    0 0 26px rgba(255, 92, 92, 0.34);
+}
+
+.impact-spark-layer-blue .impact-spark {
+  background: linear-gradient(180deg, rgba(245, 254, 255, 0.98) 0%, rgba(178, 243, 255, 0.92) 36%, rgba(113, 231, 255, 0.42) 70%, rgba(113, 231, 255, 0) 100%);
+  box-shadow:
+    0 0 12px rgba(200, 248, 255, 0.58),
+    0 0 26px rgba(113, 231, 255, 0.34);
+}
+
+.impact-spark-layer-low .impact-spark {
+  filter: blur(0.2px);
+}
+
+.impact-spark-layer-medium .impact-spark {
+  filter: blur(0.3px);
+}
+
+.impact-spark-layer-epic .impact-spark {
+  filter: blur(0.42px);
+  animation-name: impactSparkBurstEpic;
+}
+
+.impact-fragment {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  opacity: 0;
+  border-radius: 2px;
+  animation: impactFragmentBurst var(--impact-fragment-duration, 1s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+  animation-delay: var(--impact-fragment-delay, 0s);
+}
+
+.impact-spark-layer-red .impact-fragment {
+  background:
+    linear-gradient(180deg, rgba(255, 236, 198, 0.92), rgba(255, 118, 84, 0.58));
+  box-shadow:
+    0 0 10px rgba(255, 174, 132, 0.34),
+    0 0 18px rgba(255, 92, 92, 0.18);
+}
+
+.impact-spark-layer-blue .impact-fragment {
+  background:
+    linear-gradient(180deg, rgba(235, 252, 255, 0.92), rgba(113, 231, 255, 0.58));
+  box-shadow:
+    0 0 10px rgba(190, 247, 255, 0.3),
+    0 0 18px rgba(113, 231, 255, 0.18);
+}
+
+.strong-impact-active .panel-bg::after {
+  opacity: 1;
+}
+
+.player-panel.strong-impact-active.impact-tone-red .panel-bg::after {
+  box-shadow:
+    0 0 0 1px rgba(255, 92, 92, 0.32),
+    0 0 34px rgba(255, 92, 92, 0.26),
+    inset 0 0 42px rgba(255, 92, 92, 0.14);
+}
+
+.player-panel.strong-impact-active.impact-tone-blue .panel-bg::after {
+  box-shadow:
+    0 0 0 1px rgba(113, 231, 255, 0.3),
+    0 0 34px rgba(113, 231, 255, 0.24),
+    inset 0 0 42px rgba(113, 231, 255, 0.12);
+}
+
+.panel-content-epic-impact {
+  animation: epicHudShake 0.52s cubic-bezier(0.18, 0.86, 0.24, 1) both;
+}
+
 .panel-bg-transition-overlay {
   position: absolute;
   inset: 0;
@@ -465,6 +618,100 @@ body.battle-modal-open {
 
 .avatar-activation {
   animation: avatarActivate 0.7s ease;
+}
+
+@keyframes impactSparkFlash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  30% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@keyframes epicHudShake {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  14% {
+    transform: translate3d(-8px, 2px, 0);
+  }
+  30% {
+    transform: translate3d(7px, -2px, 0);
+  }
+  44% {
+    transform: translate3d(-5px, 2px, 0);
+  }
+  58% {
+    transform: translate3d(4px, -1px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes impactSparkFlashEcho {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.34);
+  }
+  24% {
+    opacity: 0.78;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.52);
+  }
+}
+
+@keyframes impactSparkBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--impact-spark-rotate, 0deg)) translate3d(0, 0, 0) scaleY(0.55);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--impact-spark-rotate, 0deg))
+      translate3d(var(--impact-spark-x, 0px), var(--impact-spark-y, -80px), 0) scaleY(1.18);
+  }
+}
+
+@keyframes impactSparkBurstEpic {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--impact-spark-rotate, 0deg)) translate3d(0, 0, 0) scale(0.92, 0.58);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--impact-spark-rotate, 0deg))
+      translate3d(calc(var(--impact-spark-x, 0px) * 1.24), calc(var(--impact-spark-y, -80px) * 1.22), 0) scale(1.24, 1.38);
+  }
+}
+
+@keyframes impactFragmentBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--impact-fragment-rotate, 0deg)) translate3d(0, 0, 0) scale(0.68);
+  }
+  12% {
+    opacity: 0.94;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(calc(var(--impact-fragment-rotate, 0deg) + 120deg))
+      translate3d(var(--impact-fragment-x, 0px), var(--impact-fragment-y, -110px), 0) scale(1.08);
+  }
 }
 
 @keyframes avatarActivate {
@@ -948,7 +1195,7 @@ body.battle-modal-open {
   padding-bottom: 20px;
   margin-bottom: 8px;
   border-bottom: 1px solid rgba(var(--battle-end-title-glow-rgb), 0.28);
-  animation: battleEndContentReveal 0.6s ease both;
+  animation: battleEndContentReveal 0.72s ease both;
   animation-delay: 0.12s;
 }
 
@@ -986,8 +1233,6 @@ body.battle-modal-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  animation: battleEndContentReveal 0.6s ease both;
-  animation-delay: 0.2s;
 }
 
 .battle-end-summary-chip {
@@ -1001,7 +1246,14 @@ body.battle-modal-open {
   border: 1px solid rgba(var(--battle-end-accent-rgb), 0.18);
   box-shadow: 0 0 18px var(--battle-end-glow);
   overflow: visible;
+  opacity: 0;
+  animation: battleEndContentReveal 0.72s ease both;
 }
+
+.battle-end-summary-chip:nth-child(1) { animation-delay: 0.26s; }
+.battle-end-summary-chip:nth-child(2) { animation-delay: 0.36s; }
+.battle-end-summary-chip:nth-child(3) { animation-delay: 0.46s; }
+.battle-end-summary-chip:nth-child(4) { animation-delay: 0.56s; }
 
 .battle-end-summary-label {
   font-size: 0.68rem;
@@ -1021,8 +1273,6 @@ body.battle-modal-open {
 .battle-end-compare-section {
   display: grid;
   gap: 10px;
-  animation: battleEndContentReveal 0.6s ease both;
-  animation-delay: 0.3s;
 }
 
 .battle-end-section-head {
@@ -1030,6 +1280,9 @@ body.battle-modal-open {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  opacity: 0;
+  animation: battleEndContentReveal 0.72s ease both;
+  animation-delay: 0.7s;
 }
 
 .battle-end-section-kicker {
@@ -1063,7 +1316,16 @@ body.battle-modal-open {
   border: 1px solid rgba(var(--battle-end-accent-rgb), 0.2);
   box-shadow: 0 0 18px var(--battle-end-glow);
   overflow: visible;
+  opacity: 0;
+  animation: battleEndContentReveal 0.72s ease both;
 }
+
+.battle-end-compare-row:nth-child(1) { animation-delay: 0.82s; }
+.battle-end-compare-row:nth-child(2) { animation-delay: 0.92s; }
+.battle-end-compare-row:nth-child(3) { animation-delay: 1.02s; }
+.battle-end-compare-row:nth-child(4) { animation-delay: 1.12s; }
+.battle-end-compare-row:nth-child(5) { animation-delay: 1.22s; }
+.battle-end-compare-row:nth-child(6) { animation-delay: 1.32s; }
 
 .battle-end-compare-topline {
   display: flex;
@@ -1152,8 +1414,6 @@ body.battle-modal-open {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  animation: battleEndContentReveal 0.6s ease both;
-  animation-delay: 0.42s;
 }
 
 .battle-end-player-card {
@@ -1167,7 +1427,12 @@ body.battle-modal-open {
     rgba(10, 10, 10, 0.46);
   box-shadow: 0 0 18px var(--battle-end-glow);
   overflow: visible;
+  opacity: 0;
+  animation: battleEndContentReveal 0.72s ease both;
 }
+
+.battle-end-player-card:nth-child(1) { animation-delay: 1.46s; }
+.battle-end-player-card:nth-child(2) { animation-delay: 1.6s; }
 
 .battle-end-player-card-winner {
   box-shadow:
@@ -1280,11 +1545,11 @@ body.battle-modal-open {
 @keyframes battleEndContentReveal {
   0% {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(22px) scale(0.985);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -1787,7 +2052,7 @@ body.battle-modal-open {
 .battle-action-nav {
   display: flex;
   gap: 8px;
-  margin-right: 6px;
+  margin-right: 0;
 }
 
 .battle-action-nav-btn {
@@ -1828,6 +2093,39 @@ body.battle-modal-open {
 .battle-action-nav-btn:disabled .battle-action-nav-icon {
   opacity: 0.5;
   filter: grayscale(1);
+}
+
+.battle-music-toggle-btn {
+  padding: 0;
+}
+
+.battle-music-toggle-label {
+  font-family: 'Lemon Milk', sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.battle-music-toggle-btn.is-active {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 220, 110, 0.24),
+    0 0 16px rgba(0, 220, 110, 0.14);
+}
+
+.battle-music-toggle-btn.is-active .battle-music-toggle-label {
+  color: rgb(0, 220, 110);
+  text-shadow: 0 0 12px rgba(0, 220, 110, 0.28);
+}
+
+.battle-music-toggle-btn.is-muted {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 12px rgba(0, 0, 0, 0.12);
+}
+
+.battle-music-toggle-btn.is-muted .battle-music-toggle-label {
+  color: rgba(255, 255, 255, 0.58);
+  text-shadow: none;
 }
 
 .attack-adjust-current-damage {
@@ -1966,6 +2264,84 @@ body.battle-modal-open {
   100% {
     opacity: 0;
     transform: translate3d(var(--attack-particle-drift, 0px), -88px, 0) scale(1.26);
+  }
+}
+
+.em-control-stack {
+  position: relative;
+  overflow: visible;
+}
+
+.em-ascend-layer {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  width: 124px;
+  height: 280px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  overflow: visible;
+  z-index: 3;
+}
+
+.em-ascend-particle {
+  position: absolute;
+  bottom: 0;
+  opacity: 0;
+  animation: emAscendFloat var(--em-ascend-duration, 1.2s) cubic-bezier(0.2, 0.72, 0.2, 1) forwards;
+  animation-delay: var(--em-ascend-delay, 0s);
+}
+
+.em-ascend-layer-red .em-ascend-particle-dot {
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.98) 0%, rgba(255, 158, 118, 0.9) 42%, rgba(255, 92, 92, 0) 100%);
+  box-shadow:
+    0 0 10px rgba(255, 184, 132, 0.52),
+    0 0 22px rgba(255, 92, 92, 0.22);
+}
+
+.em-ascend-layer-blue .em-ascend-particle-dot {
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(245, 253, 255, 0.98) 0%, rgba(170, 242, 255, 0.9) 42%, rgba(113, 231, 255, 0) 100%);
+  box-shadow:
+    0 0 10px rgba(194, 248, 255, 0.48),
+    0 0 22px rgba(113, 231, 255, 0.22);
+}
+
+.em-ascend-particle-rune {
+  border: 1px solid currentColor;
+  background: transparent;
+  --em-ascend-rotate-start: 45deg;
+}
+
+.em-ascend-layer-red .em-ascend-particle-rune {
+  color: rgba(255, 198, 160, 0.9);
+  box-shadow:
+    0 0 10px rgba(255, 174, 132, 0.42),
+    inset 0 0 6px rgba(255, 244, 214, 0.25);
+}
+
+.em-ascend-layer-blue .em-ascend-particle-rune {
+  color: rgba(205, 247, 255, 0.9);
+  box-shadow:
+    0 0 10px rgba(187, 246, 255, 0.4),
+    inset 0 0 6px rgba(245, 253, 255, 0.24);
+}
+
+@keyframes emAscendFloat {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.72) rotate(var(--em-ascend-rotate-start, 0deg));
+  }
+  12% {
+    opacity: 0.78;
+  }
+  72% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--em-ascend-drift, 0px), -220px, 0) scale(1.2) rotate(calc(var(--em-ascend-rotate-start, 0deg) + 90deg));
   }
 }
 
@@ -5169,7 +5545,7 @@ body.battle-modal-open {
   align-items: center;
   justify-content: flex-end;
   min-width: 140px;
-  gap: 10px;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
@@ -5199,7 +5575,7 @@ body.battle-modal-open {
   color: white;
   cursor: pointer;
   font-weight: 700;
-  margin-right: 10px;
+  margin-right: 0;
 }
 
 .icon-restart-btn {

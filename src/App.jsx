@@ -1355,6 +1355,38 @@ const ATTACK_READY_PARTICLES = [
   { left: "72%", size: 3, duration: 4.1, delay: 0.24, drift: -6 },
   { left: "86%", size: 4, duration: 4.5, delay: 0.68, drift: 7 },
 ];
+const IMPACT_SPARK_PARTICLES = [
+  { x: -126, y: -84, size: 4, length: 24, rotate: -28, duration: 0.68, delay: 0 },
+  { x: -94, y: -118, size: 3, length: 20, rotate: -16, duration: 0.62, delay: 0.04 },
+  { x: -48, y: -104, size: 4, length: 26, rotate: -6, duration: 0.66, delay: 0.02 },
+  { x: 8, y: -136, size: 5, length: 30, rotate: 0, duration: 0.74, delay: 0.01 },
+  { x: 52, y: -110, size: 4, length: 24, rotate: 10, duration: 0.65, delay: 0.03 },
+  { x: 102, y: -92, size: 4, length: 26, rotate: 20, duration: 0.7, delay: 0 },
+  { x: 132, y: -58, size: 3, length: 22, rotate: 34, duration: 0.64, delay: 0.05 },
+  { x: -112, y: -30, size: 3, length: 18, rotate: -42, duration: 0.58, delay: 0.07 },
+  { x: -18, y: -64, size: 3, length: 20, rotate: -2, duration: 0.6, delay: 0.08 },
+  { x: 36, y: -78, size: 3, length: 20, rotate: 12, duration: 0.62, delay: 0.06 },
+  { x: 86, y: -46, size: 3, length: 18, rotate: 26, duration: 0.56, delay: 0.09 },
+  { x: -72, y: -52, size: 3, length: 18, rotate: -24, duration: 0.57, delay: 0.08 },
+];
+const IMPACT_FRAGMENT_PARTICLES = [
+  { x: -138, y: -120, size: 10, rotate: -28, delay: 0.02, duration: 0.94 },
+  { x: -96, y: -156, size: 7, rotate: -10, delay: 0.08, duration: 1.06 },
+  { x: -42, y: -132, size: 8, rotate: 12, delay: 0.04, duration: 1.02 },
+  { x: 18, y: -170, size: 11, rotate: 0, delay: 0.01, duration: 1.12 },
+  { x: 74, y: -142, size: 8, rotate: 18, delay: 0.06, duration: 1.04 },
+  { x: 128, y: -104, size: 9, rotate: 30, delay: 0.03, duration: 0.98 },
+  { x: -118, y: -62, size: 6, rotate: -40, delay: 0.12, duration: 0.88 },
+  { x: 96, y: -68, size: 7, rotate: 36, delay: 0.1, duration: 0.9 },
+];
+const EM_ASCEND_PARTICLES = [
+  { left: "20%", size: 4, drift: -16, delay: 0, duration: 1.15, kind: "dot" },
+  { left: "34%", size: 7, drift: -10, delay: 0.08, duration: 1.28, kind: "rune" },
+  { left: "48%", size: 5, drift: 6, delay: 0.03, duration: 1.22, kind: "dot" },
+  { left: "56%", size: 8, drift: 14, delay: 0.14, duration: 1.34, kind: "rune" },
+  { left: "68%", size: 4, drift: 18, delay: 0.06, duration: 1.18, kind: "dot" },
+  { left: "78%", size: 6, drift: 10, delay: 0.18, duration: 1.26, kind: "rune" },
+];
 
 const createPlayerBattleStats = (mainAvatarName = "") => ({
   mainAvatarName,
@@ -1461,6 +1493,8 @@ function PlayerPanel({
   hpSyncRequest,
   mainHpPopup,
   secondaryHpPopup,
+  impactSpark,
+  emAscendEffect,
 }) {
   
   const avatarData = getAvatarData(name);
@@ -1587,6 +1621,14 @@ const isWinnerSide = gameOver && winner === name;
 const isLoserSide = gameOver && winner !== "Empate" && winner !== name;
 const isWinnerPanel = showVictoryContent && isWinnerSide;
 const isLoserPanel = showVictoryContent && isLoserSide;
+const impactSparkCount =
+  impactSpark?.intensity === "epic"
+    ? IMPACT_SPARK_PARTICLES.length
+    : impactSpark?.intensity === "low"
+    ? 4
+    : 7;
+const isEpicImpactActive = impactSpark?.intensity === "epic";
+const impactToneClass = impactSpark?.tone ? `impact-tone-${impactSpark.tone}` : "";
 
 const renderEnergyControl = () => (
   <div
@@ -1601,13 +1643,35 @@ const renderEnergyControl = () => (
       gap: "8px",
     }}
   >
-    <button
-      type="button"
-      className="em-control-btn"
-      onClick={onIncreaseEm}
-      disabled={!canPlaceEm}
-      style={{
-        width: "90px",
+    {emAscendEffect && (
+      <div
+        key={emAscendEffect.tick}
+        className={`em-ascend-layer em-ascend-layer-${emAscendEffect.tone}`}
+      >
+        {EM_ASCEND_PARTICLES.map((particle, particleIndex) => (
+          <span
+            key={`${panelPlayerId}-em-ascend-${emAscendEffect.tick}-${particleIndex}`}
+            className={`em-ascend-particle em-ascend-particle-${particle.kind}`}
+            style={{
+              left: particle.left,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              "--em-ascend-drift": `${particle.drift}px`,
+              "--em-ascend-delay": `${particle.delay}s`,
+              "--em-ascend-duration": `${particle.duration}s`,
+            }}
+          />
+        ))}
+      </div>
+    )}
+      <button
+        type="button"
+        className="em-control-btn"
+        onClick={onIncreaseEm}
+        data-skip-default-click-sfx="true"
+        disabled={!canPlaceEm}
+        style={{
+          width: "90px",
         height: "44px",
         border: "none",
         borderRadius: "14px",
@@ -1859,7 +1923,9 @@ return (
 <div
   className={`player-panel ${bgClass} ${gameStarted && isTurnActive ? "turn-active" : ""} ${
     isWinnerPanel ? "gameover-winner-panel" : ""
-  } ${isLoserPanel ? "gameover-loser-panel" : ""}`}
+  } ${isLoserPanel ? "gameover-loser-panel" : ""} ${
+    isEpicImpactActive ? "strong-impact-active" : ""
+  } ${impactToneClass}`}
 >
   <div className={`panel-bg ${activeHpFlash === "damage" ? "panel-bg-hit-dark" : ""}`}>
     <img
@@ -1904,6 +1970,44 @@ return (
         bgClass === "left-side" ? "panel-bg-overlay-red" : "panel-bg-overlay-blue"
       }`}
     />
+    {impactSpark && (
+      <div
+        key={impactSpark.tick}
+        className={`impact-spark-layer impact-spark-layer-${impactSpark.tone} impact-spark-layer-${impactSpark.intensity}`}
+      >
+        {IMPACT_SPARK_PARTICLES.slice(0, impactSparkCount).map((spark, sparkIndex) => (
+          <span
+            key={`${panelPlayerId}-impact-spark-${impactSpark.tick}-${sparkIndex}`}
+            className="impact-spark"
+            style={{
+              width: `${spark.size}px`,
+              height: `${spark.length}px`,
+              "--impact-spark-x": `${spark.x}px`,
+              "--impact-spark-y": `${spark.y}px`,
+              "--impact-spark-rotate": `${spark.rotate}deg`,
+              "--impact-spark-duration": `${spark.duration}s`,
+              "--impact-spark-delay": `${spark.delay}s`,
+            }}
+          />
+        ))}
+        {impactSpark.intensity === "epic" &&
+          IMPACT_FRAGMENT_PARTICLES.map((fragment, fragmentIndex) => (
+            <span
+              key={`${panelPlayerId}-impact-fragment-${impactSpark.tick}-${fragmentIndex}`}
+              className="impact-fragment"
+              style={{
+                width: `${fragment.size}px`,
+                height: `${fragment.size}px`,
+                "--impact-fragment-x": `${fragment.x}px`,
+                "--impact-fragment-y": `${fragment.y}px`,
+                "--impact-fragment-rotate": `${fragment.rotate}deg`,
+                "--impact-fragment-duration": `${fragment.duration}s`,
+                "--impact-fragment-delay": `${fragment.delay}s`,
+              }}
+            />
+          ))}
+      </div>
+    )}
     {isWinnerPanel && (
       <div className={`victory-particles ${bgClass === "left-side" ? "victory-particles-red" : "victory-particles-blue"}`}>
         {VICTORY_PARTICLES.map((particle, index) => (
@@ -1948,7 +2052,7 @@ return (
           ? "battle-intro-reveal"
           : "battle-intro-hidden"
         : ""
-    }`}
+    } ${isEpicImpactActive ? "panel-content-epic-impact" : ""}`}
   >
       <div className={`panel-top ${bgClass === "left-side" ? "panel-top-left" : ""}`}>
 <div className="avatar-header">
@@ -2028,6 +2132,7 @@ return (
           bgClass === "right-side" ? "header-pass-btn-right" : "header-pass-btn-left"
         }`}
         onClick={onPassTurn}
+        data-skip-default-click-sfx="true"
         disabled={!canPassTurn}
         aria-label="Pasar turno"
       >
@@ -2048,6 +2153,7 @@ return (
     <button
       className="ready-btn"
       onClick={onReady}
+      data-skip-default-click-sfx="true"
       disabled={isRouletteActive}
     >
       {name} LISTA!
@@ -2244,6 +2350,7 @@ return (
                       : "attack-ready-pulse-blue"
                     : ""
                 }`}
+                data-skip-default-click-sfx="true"
                 onClick={() => onAttackRequest(attack, activeSlot)}
                 title={attack.description || attack.name}
                 disabled={!attackIsReady}
@@ -4157,6 +4264,16 @@ export default function App() {
   const menuMusicRef = useRef(null);
   const battleMusicRef = useRef(null);
   const buttonClickSoundRef = useRef(null);
+  const avatarReadySoundRef = useRef(null);
+  const passTurnSoundRef = useRef(null);
+  const startMatchSoundRef = useRef(null);
+  const battleTransitionSoundRef = useRef(null);
+  const strongestHitSoundRef = useRef(null);
+  const secondaryHitSoundRef = useRef(null);
+  const victoryMusicRef = useRef(null);
+  const emPopSoundRef = useRef(null);
+  const emPopRepeatSoundRef = useRef(null);
+  const musicFadeIntervalRef = useRef(null);
   const rouletteIntervalRef = useRef(null);
   const saveToastTimeoutRef = useRef(null);
   const [turn, setTurn] = useState(1);
@@ -4189,6 +4306,10 @@ export default function App() {
   const [player2MainHpPopup, setPlayer2MainHpPopup] = useState(null);
   const [player1SecondaryHpPopup, setPlayer1SecondaryHpPopup] = useState(null);
   const [player2SecondaryHpPopup, setPlayer2SecondaryHpPopup] = useState(null);
+  const [player1ImpactSpark, setPlayer1ImpactSpark] = useState(null);
+  const [player2ImpactSpark, setPlayer2ImpactSpark] = useState(null);
+  const [player1EmAscendEffect, setPlayer1EmAscendEffect] = useState(null);
+  const [player2EmAscendEffect, setPlayer2EmAscendEffect] = useState(null);
 
   const [player1Confirmed, setPlayer1Confirmed] = useState(false);
   const [player2Confirmed, setPlayer2Confirmed] = useState(false);
@@ -4242,6 +4363,7 @@ export default function App() {
 
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [isBattleMusicMuted, setIsBattleMusicMuted] = useState(false);
 
   const [screen, setScreen] = useState("home");
   const [screenVisible, setScreenVisible] = useState(true);
@@ -4297,6 +4419,28 @@ export default function App() {
     setTimeout(() => {
       setter((current) => (current?.tick === tick ? null : current));
     }, 900);
+  };
+
+  const showImpactSpark = (setter, tone, intensity) => {
+    const tick = Date.now() + Math.random();
+    setter({ tone, intensity, tick });
+    setTimeout(() => {
+      setter((current) => (current?.tick === tick ? null : current));
+    }, intensity === "epic" ? 820 : 700);
+  };
+
+  const showEmAscendEffect = (setter, tone) => {
+    const tick = Date.now() + Math.random();
+    setter({ tone, tick });
+    setTimeout(() => {
+      setter((current) => (current?.tick === tick ? null : current));
+    }, 1400);
+  };
+
+  const playUiSound = (audioRef) => {
+    if (!audioRef?.current) return;
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(() => {});
   };
 
   const formatBattleElapsedTime = (totalSeconds) => {
@@ -4545,6 +4689,10 @@ export default function App() {
     setPlayer2MainHpFlash("");
     setPlayer1SecondaryHpFlash("");
     setPlayer2SecondaryHpFlash("");
+    setPlayer1ImpactSpark(null);
+    setPlayer2ImpactSpark(null);
+    setPlayer1EmAscendEffect(null);
+    setPlayer2EmAscendEffect(null);
     setShowTargetModal(false);
     setPendingAttack(null);
     setSelectedAttackTargetSlot(null);
@@ -4706,8 +4854,19 @@ export default function App() {
   const handleManualEmChange = (playerId, slot, delta) => {
     const currentEm = getPlayerSlotEm(playerId, slot);
     if (delta < 0 && currentEm <= 0) return;
+    const hadPlacedEmThisTurn =
+      playerId === "player1"
+        ? player1CombatState.currentTurnEmPlaced
+        : player2CombatState.currentTurnEmPlaced;
     pushBattleHistorySnapshot();
     adjustPlayerSlotEm(playerId, slot, delta, { markPlaced: delta > 0 });
+    if (delta > 0) {
+      playUiSound(hadPlacedEmThisTurn ? emPopRepeatSoundRef : emPopSoundRef);
+      showEmAscendEffect(
+        playerId === "player1" ? setPlayer1EmAscendEffect : setPlayer2EmAscendEffect,
+        playerId === "player1" ? "red" : "blue"
+      );
+    }
   };
 
 useEffect(() => {
@@ -4716,7 +4875,7 @@ useEffect(() => {
   menuMusicRef.current.volume = 0.35;
   menuMusicRef.current.preload = "auto";
 
-  battleMusicRef.current = new Audio("/audio/battle-theme.mp3");
+  battleMusicRef.current = new Audio("/audio/battle-music.mp3");
   battleMusicRef.current.loop = true;
   battleMusicRef.current.volume = 0.35;
   battleMusicRef.current.preload = "auto";
@@ -4724,9 +4883,58 @@ useEffect(() => {
   buttonClickSoundRef.current = new Audio("/audio/button-click.mp3");
   buttonClickSoundRef.current.volume = 0.45;
   buttonClickSoundRef.current.preload = "auto";
+  avatarReadySoundRef.current = new Audio("/audio/KPX_Click_UI_AccessGranted_v1.mp3");
+  avatarReadySoundRef.current.volume = 0.5;
+  avatarReadySoundRef.current.preload = "auto";
+
+  passTurnSoundRef.current = new Audio("/audio/KPX_Whoosh_Clean.mp3");
+  passTurnSoundRef.current.volume = 0.46;
+  passTurnSoundRef.current.preload = "auto";
+
+  startMatchSoundRef.current = new Audio("/audio/KPX_Click_UI_AccessGranted_v2.mp3");
+  startMatchSoundRef.current.volume = 0.55;
+  startMatchSoundRef.current.preload = "auto";
+
+  battleTransitionSoundRef.current = new Audio("/audio/KPX_Transition_Smooth.mp3");
+  battleTransitionSoundRef.current.volume = 0.5;
+  battleTransitionSoundRef.current.preload = "auto";
+
+  strongestHitSoundRef.current = new Audio("/audio/KPX_Hit_Smack.mp3");
+  strongestHitSoundRef.current.volume = 0.58;
+  strongestHitSoundRef.current.preload = "auto";
+
+  secondaryHitSoundRef.current = new Audio("/audio/KPX_Hit_Slump_v3.mp3");
+  secondaryHitSoundRef.current.volume = 0.54;
+  secondaryHitSoundRef.current.preload = "auto";
+
+  victoryMusicRef.current = new Audio("/audio/victory-music.mp3");
+  victoryMusicRef.current.loop = true;
+  victoryMusicRef.current.volume = 0.42;
+  victoryMusicRef.current.preload = "auto";
+
+  emPopSoundRef.current = new Audio("/audio/KPX_Pop_v03.mp3");
+  emPopSoundRef.current.volume = 0.42;
+  emPopSoundRef.current.preload = "auto";
+
+  emPopRepeatSoundRef.current = new Audio("/audio/KPX_Pop_v06.mp3");
+  emPopRepeatSoundRef.current.volume = 0.42;
+  emPopRepeatSoundRef.current.preload = "auto";
 
   return () => {
-    [menuMusicRef.current, battleMusicRef.current, buttonClickSoundRef.current].forEach((audio) => {
+    [
+      menuMusicRef.current,
+      battleMusicRef.current,
+      buttonClickSoundRef.current,
+      avatarReadySoundRef.current,
+      passTurnSoundRef.current,
+      startMatchSoundRef.current,
+      battleTransitionSoundRef.current,
+      strongestHitSoundRef.current,
+      secondaryHitSoundRef.current,
+      victoryMusicRef.current,
+      emPopSoundRef.current,
+      emPopRepeatSoundRef.current,
+    ].forEach((audio) => {
       if (!audio) return;
       audio.pause();
       audio.currentTime = 0;
@@ -4780,42 +4988,161 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  const unlockAudio = () => setAudioUnlocked(true);
+  const unlockAudio = () => {
+    setAudioUnlocked(true);
+
+    [
+      menuMusicRef,
+      battleMusicRef,
+      buttonClickSoundRef,
+      avatarReadySoundRef,
+      passTurnSoundRef,
+      startMatchSoundRef,
+      battleTransitionSoundRef,
+      strongestHitSoundRef,
+      secondaryHitSoundRef,
+      victoryMusicRef,
+      emPopSoundRef,
+      emPopRepeatSoundRef,
+    ].forEach((audioRef) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      try {
+        audio.load();
+      } catch {
+        // Ignore load failures; playback can still be attempted later.
+      }
+    });
+  };
 
   window.addEventListener("pointerdown", unlockAudio, { once: true });
+  window.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+  window.addEventListener("touchend", unlockAudio, { once: true, passive: true });
+  window.addEventListener("click", unlockAudio, { once: true });
   window.addEventListener("keydown", unlockAudio, { once: true });
 
   return () => {
     window.removeEventListener("pointerdown", unlockAudio);
+    window.removeEventListener("touchstart", unlockAudio);
+    window.removeEventListener("touchend", unlockAudio);
+    window.removeEventListener("click", unlockAudio);
     window.removeEventListener("keydown", unlockAudio);
   };
 }, []);
 
 useEffect(() => {
-  if (!audioUnlocked) return;
-
-  const activeMusic = screen === "battle" ? battleMusicRef.current : menuMusicRef.current;
-  const inactiveMusic = screen === "battle" ? menuMusicRef.current : battleMusicRef.current;
-
-  if (inactiveMusic) {
-    inactiveMusic.pause();
-    inactiveMusic.currentTime = 0;
+  if (musicFadeIntervalRef.current) {
+    clearInterval(musicFadeIntervalRef.current);
+    musicFadeIntervalRef.current = null;
   }
 
-  if (activeMusic) {
-    activeMusic.play().catch(() => {});
+  const menuMusic = menuMusicRef.current;
+  const battleMusic = battleMusicRef.current;
+  const victoryMusic = victoryMusicRef.current;
+  const baseBattleVolume = 0.35;
+  const baseVictoryVolume = 0.42;
+
+  if (screen !== "battle") {
+    if (battleMusic) {
+      battleMusic.pause();
+      battleMusic.currentTime = 0;
+      battleMusic.volume = baseBattleVolume;
+    }
+    if (victoryMusic) {
+      victoryMusic.pause();
+      victoryMusic.currentTime = 0;
+      victoryMusic.volume = baseVictoryVolume;
+    }
+    if (menuMusic) {
+      menuMusic.play().catch(() => {});
+    }
+    return;
   }
-}, [audioUnlocked, screen]);
+
+  if (menuMusic) {
+    menuMusic.pause();
+    menuMusic.currentTime = 0;
+  }
+
+  if (isBattleMusicMuted) {
+    if (battleMusic) {
+      battleMusic.pause();
+      battleMusic.currentTime = 0;
+      battleMusic.volume = baseBattleVolume;
+    }
+    if (victoryMusic) {
+      victoryMusic.pause();
+      victoryMusic.currentTime = 0;
+      victoryMusic.volume = baseVictoryVolume;
+    }
+    return;
+  }
+
+  if (showVictoryContent) {
+    if (victoryMusic && victoryMusic.paused) {
+      const startVictoryMusic = () => {
+        if (!victoryMusic) return;
+        victoryMusic.currentTime = 0;
+        victoryMusic.volume = baseVictoryVolume;
+        victoryMusic.play().catch(() => {});
+      };
+
+      if (battleMusic && !battleMusic.paused) {
+        const initialVolume = battleMusic.volume || baseBattleVolume;
+        const fadeStep = initialVolume / 6;
+        musicFadeIntervalRef.current = setInterval(() => {
+          if (!battleMusic) return;
+          const nextVolume = Math.max(0, battleMusic.volume - fadeStep);
+          battleMusic.volume = nextVolume;
+
+          if (nextVolume <= 0.001) {
+            clearInterval(musicFadeIntervalRef.current);
+            musicFadeIntervalRef.current = null;
+            battleMusic.pause();
+            battleMusic.currentTime = 0;
+            battleMusic.volume = baseBattleVolume;
+            startVictoryMusic();
+          }
+        }, 45);
+      } else {
+        if (battleMusic) {
+          battleMusic.pause();
+          battleMusic.currentTime = 0;
+          battleMusic.volume = baseBattleVolume;
+        }
+        startVictoryMusic();
+      }
+    }
+    return;
+  }
+
+  if (victoryMusic) {
+    victoryMusic.pause();
+    victoryMusic.currentTime = 0;
+    victoryMusic.volume = baseVictoryVolume;
+  }
+
+  if (battleMusic) {
+    battleMusic.volume = baseBattleVolume;
+    battleMusic.play().catch(() => {});
+  }
+
+  return () => {
+    if (musicFadeIntervalRef.current) {
+      clearInterval(musicFadeIntervalRef.current);
+      musicFadeIntervalRef.current = null;
+    }
+  };
+}, [audioUnlocked, screen, isBattleMusicMuted, showVictoryContent]);
 
 useEffect(() => {
-  if (!audioUnlocked) return;
-
   const playButtonClick = (event) => {
     const button = event.target instanceof HTMLElement
       ? event.target.closest("button")
       : null;
 
     if (!button || button.disabled) return;
+    if (button.dataset.skipDefaultClickSfx === "true") return;
     if (!buttonClickSoundRef.current) return;
 
     buttonClickSoundRef.current.currentTime = 0;
@@ -4827,7 +5154,7 @@ useEffect(() => {
   return () => {
     document.removeEventListener("click", playButtonClick, true);
   };
-}, [audioUnlocked]);
+}, []);
 
 const triggerFlash = (setFlash, type) => {
   setFlash(type);
@@ -4901,6 +5228,10 @@ const resetGameState = (options = {}) => {
   setPlayer2MainHpFlash("");
   setPlayer1SecondaryHpFlash("");
   setPlayer2SecondaryHpFlash("");
+  setPlayer1ImpactSpark(null);
+  setPlayer2ImpactSpark(null);
+  setPlayer1EmAscendEffect(null);
+  setPlayer2EmAscendEffect(null);
 
   setPlayer1Confirmed(false);
   setPlayer2Confirmed(false);
@@ -5382,6 +5713,8 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
   const setEnemyMainFlash = isPlayer1 ? setPlayer2MainHpFlash : setPlayer1MainHpFlash;
   const setOwnSecondaryFlash = isPlayer1 ? setPlayer1SecondaryHpFlash : setPlayer2SecondaryHpFlash;
   const setEnemySecondaryFlash = isPlayer1 ? setPlayer2SecondaryHpFlash : setPlayer1SecondaryHpFlash;
+  const setOwnImpactSpark = isPlayer1 ? setPlayer1ImpactSpark : setPlayer2ImpactSpark;
+  const setEnemyImpactSpark = isPlayer1 ? setPlayer2ImpactSpark : setPlayer1ImpactSpark;
   const setOwnMainHpPopup = isPlayer1 ? setPlayer1MainHpPopup : setPlayer2MainHpPopup;
   const setEnemyMainHpPopup = isPlayer1 ? setPlayer2MainHpPopup : setPlayer1MainHpPopup;
   const setOwnSecondaryHpPopup =
@@ -5438,6 +5771,19 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       ? enemyMainData.type
       : enemySecondary?.type || "";
   const attackCost = getAttackCost(ownTargetName, attack);
+  const attackerAttackSet = attackerSlot === "secondary" ? attackerSecondary?.attacks || [] : attackerMainData.attacks || [];
+  const attackIndex = attackerAttackSet.findIndex((currentAttack) => currentAttack.name === attack.name);
+  const strongestAttackDamage = attackerAttackSet.reduce(
+    (maxDamage, currentAttack) => Math.max(maxDamage, currentAttack.damage || 0),
+    0
+  );
+  const impactSparkIntensity =
+    (attack.damage || 0) >= strongestAttackDamage && strongestAttackDamage > 0
+      ? "epic"
+      : attackIndex === 1
+      ? "low"
+      : "medium";
+  const attackerSparkTone = isPlayer1 ? "red" : "blue";
 
   if (ownActiveEm < attackCost) return;
   pushBattleHistorySnapshot();
@@ -5469,6 +5815,18 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
 
   const triggerEnemyFlash = (slot, type) => {
     triggerFlash(slot === "secondary" ? setEnemySecondaryFlash : setEnemyMainFlash, type);
+  };
+
+  const triggerEnemyImpactSpark = (type) => {
+    if (type === "damage") {
+      showImpactSpark(setEnemyImpactSpark, attackerSparkTone, impactSparkIntensity);
+    }
+  };
+
+  const triggerOwnImpactSpark = (type) => {
+    if (type === "damage") {
+      showImpactSpark(setOwnImpactSpark, attackerSparkTone, impactSparkIntensity);
+    }
   };
 
   const showOwnPopup = (slot, text, kind) => {
@@ -5888,9 +6246,15 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     setEnemyMainHp(newMainHp);
     if (totalDamage > 0) {
       triggerEnemyFlash("main", "damage");
+      triggerEnemyImpactSpark("damage");
       showEnemyPopup("main", `-${totalDamage} PD`, "damage");
     }
     if (actualDamageDone > 0) {
+      if (impactSparkIntensity === "epic") {
+        playUiSound(strongestHitSoundRef);
+      } else if (attackIndex === 1) {
+        playUiSound(secondaryHitSoundRef);
+      }
       updateBattleStatsForPlayer(attackerId, (current) => ({
         ...current,
         damageDealt: current.damageDealt + actualDamageDone,
@@ -5954,11 +6318,17 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
       }));
       if (totalDamage > 0) {
         triggerEnemyFlash("secondary", "damage");
+        triggerEnemyImpactSpark("damage");
         showEnemyPopup("secondary", `-${totalDamage} PD`, "damage");
       }
     }
 
     if (actualDamageDone > 0) {
+      if (impactSparkIntensity === "epic") {
+        playUiSound(strongestHitSoundRef);
+      } else if (attackIndex === 1) {
+        playUiSound(secondaryHitSoundRef);
+      }
       updateBattleStatsForPlayer(attackerId, (current) => ({
         ...current,
         damageDealt: current.damageDealt + actualDamageDone,
@@ -5998,6 +6368,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
     if (attackerSlot === "main") {
       setOwnMainHp((prev) => Math.max(0, prev - selfDamage));
       triggerOwnFlash("main", "damage");
+      triggerOwnImpactSpark("damage");
       showOwnPopup("main", `-${selfDamage} PD`, "damage");
       notes.push(`Sufre ${selfDamage} PD`);
     } else if (attackerSecondary) {
@@ -6026,6 +6397,7 @@ const resolveAttackAgainstTarget = (attackerId, attack, attackerSlot, targetSlot
           currentHp: newHp,
         }));
         triggerOwnFlash("secondary", "damage");
+        triggerOwnImpactSpark("damage");
         showOwnPopup("secondary", `-${selfDamage} PD`, "damage");
       }
 
@@ -6390,6 +6762,7 @@ const stopRouletteAndApply = () => {
 
 const handlePlayerReady = (playerId) => {
   if (gameStarted) return;
+  playUiSound(avatarReadySoundRef);
 
   if (playerId === "player1") {
     setPlayer1Confirmed(true);
@@ -6418,6 +6791,7 @@ const handleChooseOtherAvatar = (playerId) => {
 };
 
 const handleStartMatch = () => {
+  playUiSound(battleTransitionSoundRef);
   setShowStartMatchModal(false);
   setShowQuickStartButton(false);
   setIsLaunchingBattleFromModal(true);
@@ -6493,8 +6867,9 @@ const navigateWithTransition = (nextScreen) => {
   }, 250);
 };
 
-  const handlePassTurn = (playerId) => {
+const handlePassTurn = (playerId) => {
   if (!gameStarted || gameOver) return;
+  playUiSound(passTurnSoundRef);
 
   const closeOwnTurnState = (ownerId) => {
     const combatState =
@@ -7174,6 +7549,17 @@ useEffect(() => {
                 >
                   <img src="/ui/redo-icon.png" alt="Rehacer" className="battle-action-nav-icon" />
                 </button>
+                <button
+                  className={`battle-action-nav-btn battle-music-toggle-btn ${
+                    isBattleMusicMuted ? "is-muted" : "is-active"
+                  }`}
+                  type="button"
+                  aria-label={isBattleMusicMuted ? "Activar música de batalla" : "Silenciar música de batalla"}
+                  title={isBattleMusicMuted ? "Activar música de batalla" : "Silenciar música de batalla"}
+                  onClick={() => setIsBattleMusicMuted((prev) => !prev)}
+                >
+                  <span className="battle-music-toggle-label">MUS</span>
+                </button>
               </div>
             )}
 
@@ -7602,7 +7988,14 @@ useEffect(() => {
         cualquier selección antes del combate.
       </p>
 
-      <button className="start-match-btn" onClick={handleStartMatch}>
+      <button
+        className="start-match-btn"
+        onClick={() => {
+          playUiSound(startMatchSoundRef);
+          handleStartMatch();
+        }}
+        data-skip-default-click-sfx="true"
+      >
         INICIAR
       </button>
 
@@ -7863,6 +8256,8 @@ useEffect(() => {
             hpSyncRequest={hpSyncRequest}
             mainHpPopup={player1MainHpPopup}
             secondaryHpPopup={player1SecondaryHpPopup}
+            impactSpark={player1ImpactSpark}
+            emAscendEffect={player1EmAscendEffect}
             onIncreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, 1)}
             onDecreaseEm={() => handleManualEmChange("player1", player1ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
@@ -7883,6 +8278,7 @@ useEffect(() => {
                 <button
                   className="quick-start-btn"
                   onClick={handleStartMatch}
+                  data-skip-default-click-sfx="true"
                   title="Iniciar partida"
                   aria-label="Iniciar partida"
                   disabled={isRouletteActive}
@@ -7965,6 +8361,8 @@ useEffect(() => {
             hpSyncRequest={hpSyncRequest}
             mainHpPopup={player2MainHpPopup}
             secondaryHpPopup={player2SecondaryHpPopup}
+            impactSpark={player2ImpactSpark}
+            emAscendEffect={player2EmAscendEffect}
             onIncreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, 1)}
             onDecreaseEm={() => handleManualEmChange("player2", player2ActiveSlot, -1)}
             isRouletteActive={isRouletteActive}
